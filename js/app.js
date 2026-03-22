@@ -14,7 +14,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let products = [];
 let categories = [];
 let cart = [];
-let promotions = []; // 🌟 เก็บข้อมูลรูปโปรโมชั่น
+let promotions = []; 
 let activeCategory = 'All';
 let searchQuery = '';
 let selectedUnits = {}; 
@@ -26,7 +26,7 @@ let promoSlideInterval;
 // 🌟 3. ฟังก์ชันควบคุมเมนูแฮมเบอร์เกอร์
 // ==========================================
 window.toggleCategories = function() {
-    // 🌟 ล็อกเมนูให้เปิดค้างไว้เสมอสำหรับหน้าจอคอมพิวเตอร์ (กว้าง 1024px ขึ้นไป)
+    // 🌟 ล็อกเมนูให้เปิดค้างไว้เสมอสำหรับหน้าจอคอมพิวเตอร์ (กว้าง 1024px ขึ้นไป) จะกดปิดไม่ได้
     if (window.innerWidth >= 1024) return;
 
     const menu = document.getElementById('sidebar-categories');
@@ -52,7 +52,6 @@ async function fetchProductsFromCloud() {
             return;
         }
         
-        // ดึงข้อมูลสินค้า
         const { data: productData, error: productError } = await supabaseClient
             .from('products')
             .select(`
@@ -101,7 +100,6 @@ async function fetchProductsFromCloud() {
             }).filter(p => p.units.length > 0);
         }
 
-        // 🌟 ดึงข้อมูลภาพโปรโมชั่นจาก Supabase
         const { data: promoData, error: promoError } = await supabaseClient
             .from('promotions')
             .select('*')
@@ -131,7 +129,7 @@ function init() {
     const menu = document.getElementById('sidebar-categories');
     const chevron = document.getElementById('category-chevron');
     if (menu && chevron) {
-        if (window.innerWidth >= 1024) { // เปลี่ยนจาก 768 เป็น 1024 ให้คลุมถึง iPad
+        if (window.innerWidth >= 1024) { 
             menu.classList.remove('hidden');
             chevron.style.transform = 'rotate(180deg)';
         } else {
@@ -140,18 +138,18 @@ function init() {
         }
     }
 
-    renderPromotions(); // 🌟 สั่งให้วาดภาพโปรโมชั่นสไลด์
-    renderSidebar(); renderTabs(); renderProducts();
+    renderPromotions(); 
+    renderSidebar(); 
+    renderTabs(); 
+    renderProducts();
 }
 
-// 🌟 ระบบวาดสไลด์โปรโมชั่น
 function renderPromotions() {
     const slider = document.getElementById('promo-slider');
     const dotsContainer = document.getElementById('promo-dots');
     if (!slider || !dotsContainer) return;
 
     if (promotions.length === 0) {
-        // หากยังไม่มีภาพโปรโมชั่นในระบบ จะโชว์ภาพเริ่มต้น
         slider.innerHTML = `
             <div class="min-w-full h-full flex items-center justify-center bg-[#f5f5f5] cursor-pointer" onclick="document.getElementById('shop-section').scrollIntoView({behavior: 'smooth'});">
                 <img src="image_a3b10d.jpg" alt="Promotion Banner" class="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]" onerror="this.src='https://placehold.co/1200x400/f5f5f5/94a3b8?text=SabuyShop+Promotion'" />
@@ -160,14 +158,12 @@ function renderPromotions() {
         return;
     }
 
-    // สร้างสไลด์ตามข้อมูลรูปที่ได้จากฐานข้อมูล
     slider.innerHTML = promotions.map(promo => `
         <div class="min-w-full h-full relative bg-gray-100 flex items-center justify-center cursor-pointer" onclick="document.getElementById('shop-section').scrollIntoView({behavior: 'smooth'});">
             <img src="${promo.image_url}" class="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]" alt="Promotion Banner" />
         </div>
     `).join('');
 
-    // สร้างจุดบอกตำแหน่ง
     dotsContainer.innerHTML = promotions.map((_, i) => `
         <button class="h-2.5 rounded-full transition-all duration-300 ${i === 0 ? 'bg-[#7fad39] w-6' : 'bg-white/70 hover:bg-white w-2.5 shadow-sm'}" onclick="goToPromoSlide(${i})"></button>
     `).join('');
@@ -210,7 +206,7 @@ function updatePromoSliderUI() {
 function startPromoTimer() {
     if (promotions.length <= 1) return;
     clearInterval(promoSlideInterval);
-    promoSlideInterval = setInterval(window.nextPromoSlide, 4000); // เลื่อนอัตโนมัติทุก 4 วินาที
+    promoSlideInterval = setInterval(window.nextPromoSlide, 4000); 
 }
 
 function resetPromoTimer() {
@@ -226,12 +222,17 @@ function renderSidebar() {
     ul.innerHTML = html;
 }
 
+// 🌟 ปรับปรุง: วาดปุ่มหมวดหมู่แนวนอนใหม่ให้เป็น "แคปซูล" สวยๆ
 function renderTabs() {
     const container = document.getElementById('tab-categories');
-    let html = `<button onclick="setActiveCategory('All')" class="whitespace-nowrap font-bold transition-colors ${activeCategory === 'All' ? 'text-[#7fad39] border-b-2 border-[#7fad39]' : 'text-gray-500 hover:text-gray-900'}">ทั้งหมด</button>`;
+    if (!container) return;
+    
+    let html = `<button onclick="setActiveCategory('All')" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold border transition-all duration-300 shadow-sm flex-shrink-0 ${activeCategory === 'All' ? 'bg-[#7fad39] text-white border-[#7fad39]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#7fad39] hover:text-[#7fad39]'}">ทั้งหมด</button>`;
+    
     categories.forEach(cat => {
-        html += `<button onclick="setActiveCategory('${cat}')" class="whitespace-nowrap font-bold transition-colors ${activeCategory === cat ? 'text-[#7fad39] border-b-2 border-[#7fad39]' : 'text-gray-500 hover:text-gray-900'}">${cat}</button>`;
+        html += `<button onclick="setActiveCategory('${cat}')" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold border transition-all duration-300 shadow-sm flex-shrink-0 ${activeCategory === cat ? 'bg-[#7fad39] text-white border-[#7fad39]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#7fad39] hover:text-[#7fad39]'}">${cat}</button>`;
     });
+    
     container.innerHTML = html;
 }
 
@@ -473,7 +474,6 @@ window.addEventListener('scroll', () => {
 // 🌟 9. ดักจับการย่อ-ขยายหน้าจอ (Resize Event) 
 let lastWidth = window.innerWidth;
 window.addEventListener('resize', () => {
-    // ถ้าหน้าจอถูกขยายเป็นคอมพิวเตอร์ (>= 1024px)
     if (window.innerWidth >= 1024 && lastWidth < 1024) {
         const menu = document.getElementById('sidebar-categories');
         const chevron = document.getElementById('category-chevron');
@@ -482,7 +482,6 @@ window.addEventListener('resize', () => {
             chevron.style.transform = 'rotate(180deg)';
         }
     } 
-    // ถ้าหน้าจอถูกย่อเป็น iPad หรือมือถือ (< 1024px)
     else if (window.innerWidth < 1024 && lastWidth >= 1024) {
         const menu = document.getElementById('sidebar-categories');
         const chevron = document.getElementById('category-chevron');
