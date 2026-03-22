@@ -14,9 +14,13 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let products = [];
 let categories = [];
 let cart = [];
+let promotions = []; // 🌟 เก็บข้อมูลรูปโปรโมชั่น
 let activeCategory = 'All';
 let searchQuery = '';
 let selectedUnits = {}; 
+
+let currentPromoSlide = 0;
+let promoSlideInterval;
 
 // ==========================================
 // 🌟 3. ฟังก์ชันควบคุมเมนูแฮมเบอร์เกอร์
@@ -24,12 +28,13 @@ let selectedUnits = {};
 window.toggleCategories = function() {
     const menu = document.getElementById('sidebar-categories');
     const chevron = document.getElementById('category-chevron');
-    menu.classList.toggle('hidden');
-    
-    if (menu.classList.contains('hidden')) {
-        chevron.style.transform = 'rotate(0deg)';
-    } else {
-        chevron.style.transform = 'rotate(180deg)';
+    if (menu && chevron) {
+        menu.classList.toggle('hidden');
+        if (menu.classList.contains('hidden')) {
+            chevron.style.transform = 'rotate(0deg)';
+        } else {
+            chevron.style.transform = 'rotate(180deg)';
+        }
     }
 }
 
@@ -44,7 +49,8 @@ async function fetchProductsFromCloud() {
             return;
         }
         
-        const { data, error } = await supabaseClient
+        // ดึงข้อมูลสินค้า
+        const { data: productData, error: productError } = await supabaseClient
             .from('products')
             .select(`
                 *,
@@ -52,14 +58,13 @@ async function fetchProductsFromCloud() {
                 product_units (*)
             `);
 
-        if (error) throw error;
+        if (productError) throw productError;
 
-        if (data && data.length > 0) {
-            const activeData = data.filter(p => p.status !== 1 && p.show_on_web === true);
+        if (productData && productData.length > 0) {
+            const activeData = productData.filter(p => p.status !== 1 && p.show_on_web === true);
 
             products = activeData.map(p => {
                 let units = [];
-                
                 const sUnitName = p.s_unit ? p.s_unit.trim() : 'ชิ้น';
                 if (p.web_show_s_unit && p.price1 > 0) {
                     units.push({ name: sUnitName, price: p.price1 });
@@ -71,7 +76,6 @@ async function fetchProductsFromCloud() {
                         if (mUnitName && u.price2 > 0 && !units.find(x => x.name === mUnitName)) {
                             units.push({ name: mUnitName, price: u.price2 });
                         }
-                        
                         const lUnitName = u.l_unit ? u.l_unit.trim() : null;
                         if (lUnitName && u.price1 > 0 && !units.find(x => x.name === lUnitName)) {
                             units.push({ name: lUnitName, price: u.price1 });
@@ -91,8 +95,20 @@ async function fetchProductsFromCloud() {
                     is_hot: p.is_hot, 
                     units: units
                 };
-            }).filter(p => p.units.length > 0); 
+            }).filter(p => p.units.length > 0);
         }
+
+        // 🌟 ดึงข้อมูลภาพโปรโมชั่นจาก Supabase
+        const { data: promoData, error: promoError } = await supabaseClient
+            .from('promotions')
+            .select('*')
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true });
+            
+        if (!promoError && promoData) {
+            promotions = promoData;
+        }
+
         init(); 
     } catch (err) {
         console.error("JS Error:", err);
@@ -108,18 +124,94 @@ function init() {
     document.getElementById('loading-spinner').style.display = 'none';
     document.getElementById('category-products-grid').classList.remove('hidden');
     
-    // 🌟 เช็คหน้าจอตอนเริ่มต้น (คอมพิวเตอร์=เปิดเมนูค้างไว้, มือถือ=ซ่อนเมนู)
+    // เช็คหน้าจอตอนเริ่มต้น (คอมพิวเตอร์=เปิดเมนูค้างไว้, มือถือ=ซ่อนเมนู)
     const menu = document.getElementById('sidebar-categories');
     const chevron = document.getElementById('category-chevron');
-    if (window.innerWidth >= 768) {
-        menu.classList.remove('hidden');
-        chevron.style.transform = 'rotate(180deg)';
-    } else {
-        menu.classList.add('hidden');
-        chevron.style.transform = 'rotate(0deg)';
+    if (menu && chevron) {
+        if (window.innerWidth >= 768) {
+            menu.classList.remove('hidden');
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            menu.classList.add('hidden');
+            chevron.style.transform = 'rotate(0deg)';
+        }
     }
 
+    renderPromotions(); // 🌟 สั่งให้วาดภาพโปรโมชั่นสไลด์
     renderSidebar(); renderTabs(); renderProducts();
+}
+
+// 🌟 ระบบวาดสไลด์โปรโมชั่น
+function renderPromotions() {
+    const slider = document.getElementById('promo-slider');
+    const dotsContainer = document.getElementById('promo-dots');
+    if (!slider || !dotsContainer) return;
+
+    if (promotions.length === 0) {
+        // หากยังไม่มีภาพโปรโมชั่นในระบบ จะโชว์ภาพเริ่มต้น
+        slider.innerHTML = `
+            <div class="min-w-full h-full flex items-center justify-center bg-[#f5f5f5] cursor-pointer" onclick="document.getElementById('shop-section').scrollIntoView({behavior: 'smooth'});">
+                <img src="image_a3b10d.jpg" alt="Promotion Banner" class="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]" onerror="this.src='https://placehold.co/1200x400/f5f5f5/94a3b8?text=SabuyShop+Promotion'" />
+            </div>`;
+        dotsContainer.innerHTML = '';
+        return;
+    }
+
+    // สร้างสไลด์ตามข้อมูลรูปที่ได้จากฐานข้อมูล
+    slider.innerHTML = promotions.map(promo => `
+        <div class="min-w-full h-full relative bg-gray-100 flex items-center justify-center cursor-pointer" onclick="document.getElementById('shop-section').scrollIntoView({behavior: 'smooth'});">
+            <img src="${promo.image_url}" class="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.02]" alt="Promotion Banner" />
+        </div>
+    `).join('');
+
+    // สร้างจุดบอกตำแหน่ง
+    dotsContainer.innerHTML = promotions.map((_, i) => `
+        <button class="h-2.5 rounded-full transition-all duration-300 ${i === 0 ? 'bg-[#7fad39] w-6' : 'bg-white/70 hover:bg-white w-2.5 shadow-sm'}" onclick="goToPromoSlide(${i})"></button>
+    `).join('');
+
+    currentPromoSlide = 0;
+    startPromoTimer();
+}
+
+window.nextPromoSlide = function() {
+    if (promotions.length <= 1) return;
+    currentPromoSlide = (currentPromoSlide + 1) % promotions.length;
+    updatePromoSliderUI();
+    resetPromoTimer();
+}
+
+window.prevPromoSlide = function() {
+    if (promotions.length <= 1) return;
+    currentPromoSlide = (currentPromoSlide - 1 + promotions.length) % promotions.length;
+    updatePromoSliderUI();
+    resetPromoTimer();
+}
+
+window.goToPromoSlide = function(index) {
+    currentPromoSlide = index;
+    updatePromoSliderUI();
+    resetPromoTimer();
+}
+
+function updatePromoSliderUI() {
+    const slider = document.getElementById('promo-slider');
+    const dotsContainer = document.getElementById('promo-dots');
+    if (!slider || !dotsContainer) return;
+
+    slider.style.transform = `translateX(-${currentPromoSlide * 100}%)`;
+    Array.from(dotsContainer.children).forEach((dot, i) => {
+        dot.className = `h-2.5 rounded-full transition-all duration-300 ${i === currentPromoSlide ? 'bg-[#7fad39] w-6' : 'bg-white/70 hover:bg-white w-2.5 shadow-sm'}`;
+    });
+}
+
+function startPromoTimer() {
+    if (promotions.length <= 1) return;
+    clearInterval(promoSlideInterval);
+    promoSlideInterval = setInterval(window.nextPromoSlide, 4000); // เลื่อนอัตโนมัติทุก 4 วินาที
+}
+
+function resetPromoTimer() {
+    startPromoTimer();
 }
 
 function renderSidebar() {
@@ -231,10 +323,14 @@ window.setActiveCategory = function(cat) {
     document.getElementById('category-title').innerText = cat === 'All' ? 'สินค้าทั้งหมด' : cat;
     renderSidebar(); renderTabs(); renderProducts();
     
-    // 🌟 หุบเมนูอัตโนมัติบนจอมือถือ หลังจากที่ลูกค้ากดเลือกหมวดหมู่เสร็จ
+    // หุบเมนูอัตโนมัติบนจอมือถือ หลังจากที่ลูกค้ากดเลือกหมวดหมู่เสร็จ
     if (window.innerWidth < 768) {
-        document.getElementById('sidebar-categories').classList.add('hidden');
-        document.getElementById('category-chevron').style.transform = 'rotate(0deg)';
+        const menu = document.getElementById('sidebar-categories');
+        const chevron = document.getElementById('category-chevron');
+        if (menu && chevron) {
+            menu.classList.add('hidden');
+            chevron.style.transform = 'rotate(0deg)';
+        }
     }
 }
 
@@ -276,7 +372,7 @@ function updateCartUI() {
     const cartItemsList = document.getElementById('cart-items');
     const cartFooter = document.getElementById('cart-footer');
     const cartTotalEl = document.getElementById('cart-total');
-    const floatingCartBadge = document.getElementById('floating-cart-badge'); // 🌟 เพิ่มตัวแปรสำหรับปุ่มลอยตะกร้า
+    const floatingCartBadge = document.getElementById('floating-cart-badge');
 
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -284,18 +380,13 @@ function updateCartUI() {
     if (totalQty > 0) { 
         cartBadge.innerText = totalQty; 
         cartBadge.classList.remove('hidden'); 
-        
-        // 🌟 อัปเดตตัวเลขที่ปุ่มตะกร้าขวาล่าง
-        if(floatingCartBadge) {
+        if (floatingCartBadge) {
             floatingCartBadge.innerText = totalQty;
             floatingCartBadge.classList.remove('hidden');
         }
-    } 
-    else { 
+    } else { 
         cartBadge.classList.add('hidden'); 
-        
-        // 🌟 ซ่อนตัวเลขปุ่มตะกร้าเมื่อไม่มีของ
-        if(floatingCartBadge) {
+        if (floatingCartBadge) {
             floatingCartBadge.classList.add('hidden');
         }
     }
