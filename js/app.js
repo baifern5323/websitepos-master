@@ -26,6 +26,9 @@ let promoSlideInterval;
 // 🌟 3. ฟังก์ชันควบคุมเมนูแฮมเบอร์เกอร์
 // ==========================================
 window.toggleCategories = function() {
+    // 🌟 ล็อกเมนูให้เปิดค้างไว้เสมอสำหรับหน้าจอคอมพิวเตอร์ (กว้าง 1024px ขึ้นไป)
+    if (window.innerWidth >= 1024) return;
+
     const menu = document.getElementById('sidebar-categories');
     const chevron = document.getElementById('category-chevron');
     if (menu && chevron) {
@@ -124,11 +127,11 @@ function init() {
     document.getElementById('loading-spinner').style.display = 'none';
     document.getElementById('category-products-grid').classList.remove('hidden');
     
-    // เช็คหน้าจอตอนเริ่มต้น (คอมพิวเตอร์=เปิดเมนูค้างไว้, มือถือ=ซ่อนเมนู)
+    // 🌟 เช็คหน้าจอตอนเริ่มต้น (คอมพิวเตอร์=เปิดเมนูค้างไว้, iPad/มือถือ=ซ่อนเมนู)
     const menu = document.getElementById('sidebar-categories');
     const chevron = document.getElementById('category-chevron');
     if (menu && chevron) {
-        if (window.innerWidth >= 768) {
+        if (window.innerWidth >= 1024) { // เปลี่ยนจาก 768 เป็น 1024 ให้คลุมถึง iPad
             menu.classList.remove('hidden');
             chevron.style.transform = 'rotate(180deg)';
         } else {
@@ -323,8 +326,8 @@ window.setActiveCategory = function(cat) {
     document.getElementById('category-title').innerText = cat === 'All' ? 'สินค้าทั้งหมด' : cat;
     renderSidebar(); renderTabs(); renderProducts();
     
-    // หุบเมนูอัตโนมัติบนจอมือถือ หลังจากที่ลูกค้ากดเลือกหมวดหมู่เสร็จ
-    if (window.innerWidth < 768) {
+    // 🌟 หุบเมนูอัตโนมัติบน iPad และหน้าจอมือถือ หลังจากที่ลูกค้ากดเลือกหมวดหมู่เสร็จ
+    if (window.innerWidth < 1024) {
         const menu = document.getElementById('sidebar-categories');
         const chevron = document.getElementById('category-chevron');
         if (menu && chevron) {
@@ -465,6 +468,30 @@ window.addEventListener('scroll', () => {
             homeBtn.classList.remove('flex');
         }
     }
+});
+
+// 🌟 9. ดักจับการย่อ-ขยายหน้าจอ (Resize Event) 
+let lastWidth = window.innerWidth;
+window.addEventListener('resize', () => {
+    // ถ้าหน้าจอถูกขยายเป็นคอมพิวเตอร์ (>= 1024px)
+    if (window.innerWidth >= 1024 && lastWidth < 1024) {
+        const menu = document.getElementById('sidebar-categories');
+        const chevron = document.getElementById('category-chevron');
+        if (menu && chevron) {
+            menu.classList.remove('hidden');
+            chevron.style.transform = 'rotate(180deg)';
+        }
+    } 
+    // ถ้าหน้าจอถูกย่อเป็น iPad หรือมือถือ (< 1024px)
+    else if (window.innerWidth < 1024 && lastWidth >= 1024) {
+        const menu = document.getElementById('sidebar-categories');
+        const chevron = document.getElementById('category-chevron');
+        if (menu && chevron) {
+            menu.classList.add('hidden');
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+    lastWidth = window.innerWidth;
 });
 
 // 🚀 สั่งเริ่มทำงานเมื่อไฟล์โหลดเสร็จ
