@@ -19,7 +19,22 @@ let searchQuery = '';
 let selectedUnits = {}; 
 
 // ==========================================
-// 3. ฟังก์ชันดึงข้อมูลจาก Cloud
+// 🌟 3. ฟังก์ชันควบคุมเมนูแฮมเบอร์เกอร์
+// ==========================================
+window.toggleCategories = function() {
+    const menu = document.getElementById('sidebar-categories');
+    const chevron = document.getElementById('category-chevron');
+    menu.classList.toggle('hidden');
+    
+    if (menu.classList.contains('hidden')) {
+        chevron.style.transform = 'rotate(0deg)';
+    } else {
+        chevron.style.transform = 'rotate(180deg)';
+    }
+}
+
+// ==========================================
+// 4. ฟังก์ชันดึงข้อมูลจาก Cloud
 // ==========================================
 async function fetchProductsFromCloud() {
     try {
@@ -29,7 +44,6 @@ async function fetchProductsFromCloud() {
             return;
         }
         
-        // JOIN 3 ตารางในคำสั่งเดียว
         const { data, error } = await supabaseClient
             .from('products')
             .select(`
@@ -41,7 +55,6 @@ async function fetchProductsFromCloud() {
         if (error) throw error;
 
         if (data && data.length > 0) {
-            // กรองตามเงื่อนไข (โชว์บนเว็บ และ สถานะใช้งานอยู่)
             const activeData = data.filter(p => p.status !== 1 && p.show_on_web === true);
 
             products = activeData.map(p => {
@@ -78,7 +91,7 @@ async function fetchProductsFromCloud() {
                     is_hot: p.is_hot, 
                     units: units
                 };
-            }).filter(p => p.units.length > 0); // เอาเฉพาะที่มีหน่วยขาย
+            }).filter(p => p.units.length > 0); 
         }
         init(); 
     } catch (err) {
@@ -88,12 +101,24 @@ async function fetchProductsFromCloud() {
 }
 
 // ==========================================
-// 4. ฟังก์ชันแสดงผลหน้าเว็บ (UI Render)
+// 5. ฟังก์ชันแสดงผลหน้าเว็บ (UI Render)
 // ==========================================
 function init() {
     categories = [...new Set(products.map(p => p.category).filter(Boolean))];
     document.getElementById('loading-spinner').style.display = 'none';
     document.getElementById('category-products-grid').classList.remove('hidden');
+    
+    // 🌟 เช็คหน้าจอตอนเริ่มต้น (คอมพิวเตอร์=เปิดเมนูค้างไว้, มือถือ=ซ่อนเมนู)
+    const menu = document.getElementById('sidebar-categories');
+    const chevron = document.getElementById('category-chevron');
+    if (window.innerWidth >= 768) {
+        menu.classList.remove('hidden');
+        chevron.style.transform = 'rotate(180deg)';
+    } else {
+        menu.classList.add('hidden');
+        chevron.style.transform = 'rotate(0deg)';
+    }
+
     renderSidebar(); renderTabs(); renderProducts();
 }
 
@@ -197,12 +222,20 @@ function renderProducts() {
 }
 
 // ==========================================
-// 5. ระบบตะกร้า (Cart) และค้นหา (Search)
+// 6. ระบบตะกร้า (Cart) และค้นหา (Search)
 // ==========================================
 window.handleSearch = function(val) { searchQuery = val.toLowerCase(); renderProducts(); }
+
 window.setActiveCategory = function(cat) {
-    activeCategory = cat; document.getElementById('category-title').innerText = cat === 'All' ? 'สินค้าทั้งหมด' : cat;
+    activeCategory = cat; 
+    document.getElementById('category-title').innerText = cat === 'All' ? 'สินค้าทั้งหมด' : cat;
     renderSidebar(); renderTabs(); renderProducts();
+    
+    // 🌟 หุบเมนูอัตโนมัติบนจอมือถือ หลังจากที่ลูกค้ากดเลือกหมวดหมู่เสร็จ
+    if (window.innerWidth < 768) {
+        document.getElementById('sidebar-categories').classList.add('hidden');
+        document.getElementById('category-chevron').style.transform = 'rotate(0deg)';
+    }
 }
 
 window.handleUnitSelect = function(productId, unitType) {
@@ -243,12 +276,29 @@ function updateCartUI() {
     const cartItemsList = document.getElementById('cart-items');
     const cartFooter = document.getElementById('cart-footer');
     const cartTotalEl = document.getElementById('cart-total');
+    const floatingCartBadge = document.getElementById('floating-cart-badge'); // 🌟 เพิ่มตัวแปรสำหรับปุ่มลอยตะกร้า
 
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
 
-    if (totalQty > 0) { cartBadge.innerText = totalQty; cartBadge.classList.remove('hidden'); } 
-    else { cartBadge.classList.add('hidden'); }
+    if (totalQty > 0) { 
+        cartBadge.innerText = totalQty; 
+        cartBadge.classList.remove('hidden'); 
+        
+        // 🌟 อัปเดตตัวเลขที่ปุ่มตะกร้าขวาล่าง
+        if(floatingCartBadge) {
+            floatingCartBadge.innerText = totalQty;
+            floatingCartBadge.classList.remove('hidden');
+        }
+    } 
+    else { 
+        cartBadge.classList.add('hidden'); 
+        
+        // 🌟 ซ่อนตัวเลขปุ่มตะกร้าเมื่อไม่มีของ
+        if(floatingCartBadge) {
+            floatingCartBadge.classList.add('hidden');
+        }
+    }
     cartHeaderTotal.innerText = `฿${totalAmount.toLocaleString()}`;
 
     if (cart.length === 0) {
@@ -280,7 +330,7 @@ function updateCartUI() {
 }
 
 // ==========================================
-// 6. UI เปิด/ปิด ตะกร้า & ออกบิลส่ง LINE
+// 7. UI เปิด/ปิด ตะกร้า & ออกบิลส่ง LINE
 // ==========================================
 window.openCart = function() {
     document.getElementById('cart-drawer').classList.remove('hidden');
@@ -304,6 +354,27 @@ window.checkoutViaLine = function() {
     const encodedText = encodeURIComponent(orderText);
     window.open(`https://line.me/R/oaMessage/${LINE_OA_ID}/?${encodedText}`, '_blank');
 }
+
+// ==========================================
+// 🌟 8. ระบบปุ่มลอย (Floating Buttons)
+// ==========================================
+window.goHomeAndScrollTop = function() {
+    setActiveCategory('All');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.addEventListener('scroll', () => {
+    const homeBtn = document.getElementById('floating-home-btn');
+    if (homeBtn) {
+        if (window.scrollY > 200) {
+            homeBtn.classList.remove('hidden');
+            homeBtn.classList.add('flex');
+        } else {
+            homeBtn.classList.add('hidden');
+            homeBtn.classList.remove('flex');
+        }
+    }
+});
 
 // 🚀 สั่งเริ่มทำงานเมื่อไฟล์โหลดเสร็จ
 fetchProductsFromCloud();
