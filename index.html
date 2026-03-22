@@ -37,7 +37,6 @@
 
         <nav class="hidden md:flex gap-8 font-bold text-sm tracking-wide">
             <a href="#" onclick="if(typeof goHomeAndScrollTop === 'function') { goHomeAndScrollTop(); return false; }" class="text-[#7fad39]">HOME</a>
-            <!-- 🌟 สลับเมนู PROMOTION มาไว้ก่อน SHOP -->
             <a href="#promotion-section" class="hover:text-[#7fad39] transition">PROMOTION</a>
             <a href="#shop-section" onclick="if(typeof setActiveCategory === 'function') setActiveCategory('All')" class="hover:text-[#7fad39] transition">SHOP</a>
             <a href="#footer-section" class="hover:text-[#7fad39] transition">CONTACT</a>
@@ -54,15 +53,38 @@
         </div>
     </header>
 
+    <!-- ================= 🌟 STICKY SEARCH BAR (แถบค้นหาปักหมุด) ================= -->
+    <div class="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 py-3 mb-6 transition-all">
+        <div class="max-w-6xl mx-auto px-4 flex justify-between items-center gap-4">
+            
+            <!-- ช่องค้นหา (ขอบเขียวหนาแบบในรูป) -->
+            <div class="flex flex-1 w-full md:max-w-2xl border-[1.5px] border-[#7fad39] rounded-lg overflow-hidden h-12 shadow-sm bg-white">
+                <input type="text" id="search-input" placeholder="ค้นหาชื่อสินค้า หรือ บาร์โค้ด..." class="flex-1 px-4 outline-none text-sm bg-transparent" oninput="if(typeof handleSearch === 'function') handleSearch(this.value)">
+                <button class="bg-[#7fad39] text-white px-6 md:px-8 font-bold hover:bg-[#6c9331] transition text-sm md:text-base">ค้นหา</button>
+            </div>
+            
+            <!-- เบอร์โทรช่วยเหลือ (ซ่อนในมือถือ โชว์ในจอใหญ่) -->
+            <div class="hidden lg:flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-[#f5f5f5] flex items-center justify-center text-[#7fad39]">
+                    <i class="fa-solid fa-phone text-xl"></i>
+                </div>
+                <div>
+                    <div class="font-black text-lg text-black leading-none mb-1">02-123-4567</div>
+                    <div class="text-xs text-gray-500 leading-none">บริการช่วยเหลือ 24 ชม.</div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
     <!-- HERO & PROMOTION & SIDEBAR -->
     <section class="max-w-6xl mx-auto px-4 mb-8 flex flex-col md:flex-row gap-6">
         
-        <!-- 🌟 ปรับแต่งกล่องหมวดหมู่ด้านซ้าย (ล็อกบนจอคอม และซ่อนลูกศร) -->
+        <!-- กล่องหมวดหมู่ด้านซ้าย -->
         <div class="w-full md:w-64 flex-shrink-0 relative z-30">
             <div class="bg-[#7fad39] text-white px-6 py-4 flex items-center gap-3 font-bold cursor-pointer lg:cursor-default select-none rounded-t-lg" onclick="if(typeof toggleCategories === 'function') toggleCategories()">
                 <i class="fa-solid fa-bars text-lg"></i>
                 หมวดหมู่ทั้งหมด
-                <!-- บนจอคอม (lg) จะซ่อนลูกศรทิ้งไป เพราะเราล็อกเมนูเปิดไว้ตลอด -->
                 <i id="category-chevron" class="fa-solid fa-chevron-down ml-auto transition-transform duration-300 lg:hidden"></i>
             </div>
             <ul id="sidebar-categories" class="hidden border border-t-0 border-gray-200 bg-white py-2 absolute w-full rounded-b-lg shadow-sm max-h-[400px] overflow-y-auto hide-scrollbar origin-top transition-all duration-300">
@@ -71,24 +93,8 @@
         </div>
 
         <div class="flex-1 flex flex-col gap-6">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex flex-1 w-full border border-gray-200 rounded-lg overflow-hidden h-12">
-                    <input type="text" id="search-input" placeholder="ค้นหาชื่อสินค้า หรือ บาร์โค้ด..." class="flex-1 px-4 outline-none text-sm" oninput="if(typeof handleSearch === 'function') handleSearch(this.value)">
-                    <button class="bg-[#7fad39] text-white px-6 font-bold hover:bg-[#6c9331] transition">ค้นหา</button>
-                </div>
-                <div class="hidden lg:flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-[#f5f5f5] flex items-center justify-center text-[#7fad39]">
-                        <i class="fa-solid fa-phone text-lg"></i>
-                    </div>
-                    <div>
-                        <div class="font-black text-lg text-black">02-123-4567</div>
-                        <div class="text-xs text-gray-500">บริการช่วยเหลือ 24 ชม.</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PROMOTION SLIDER -->
-            <div id="promotion-section" class="w-full h-[200px] md:h-[350px] relative overflow-hidden rounded-lg group scroll-mt-6 bg-gray-100 shadow-sm border border-gray-200">
+            <!-- 🌟 PROMOTION SLIDER (ปรับ scroll-mt-24 เพื่อเผื่อระยะแถบค้นหาที่ปักหมุด) -->
+            <div id="promotion-section" class="w-full h-[200px] md:h-[350px] relative overflow-hidden rounded-lg group scroll-mt-24 bg-gray-100 shadow-sm border border-gray-200">
                 
                 <div id="promo-slider" class="flex w-full h-full transition-transform duration-500 ease-in-out">
                     <div class="min-w-full h-full flex items-center justify-center">
@@ -109,7 +115,7 @@
     </section>
 
     <!-- PRODUCT AREA -->
-    <section id="shop-section" class="max-w-6xl mx-auto px-4 py-8 scroll-mt-6">
+    <section id="shop-section" class="max-w-6xl mx-auto px-4 py-8 scroll-mt-24">
         <!-- 🔥 สินค้าขายดี -->
         <div id="hot-products-section" class="mb-12 md:mb-16 hidden">
             <div class="text-center mb-8 relative">
@@ -122,7 +128,7 @@
 
         <!-- สินค้าตามหมวดหมู่ -->
         <div>
-            <!-- 🌟 ปรับปรุงแท็บหมวดหมู่ (จะถูกซ่อนบนจอคอม lg:hidden และปรับเป็นแบบเลื่อนซ้ายขวา) -->
+            <!-- แท็บหมวดหมู่แบบแคปซูล (ซ่อนบนจอคอม เลื่อนปัดซ้ายขวาบนมือถือ) -->
             <div id="tab-categories" class="flex lg:hidden overflow-x-auto justify-start gap-3 mb-6 pb-2 hide-scrollbar px-1 snap-x"></div>
             
             <div class="text-center mb-8 relative">
@@ -141,7 +147,7 @@
     </section>
 
     <!-- FOOTER -->
-    <footer id="footer-section" class="bg-[#f5f5f5] pt-12 pb-8 mt-12 border-t border-gray-200 scroll-mt-6">
+    <footer id="footer-section" class="bg-[#f5f5f5] pt-12 pb-8 mt-12 border-t border-gray-200 scroll-mt-24">
         <div class="max-w-6xl mx-auto px-4 text-center">
             <h1 class="text-2xl md:text-3xl font-black tracking-tighter text-black uppercase mb-3 md:mb-4">SabuyShop</h1>
             <p class="text-gray-600 text-sm mb-4">Phone: 02-123-4567 | Email: contact@sabuyshop.com</p>
@@ -181,7 +187,7 @@
     </div>
 
     <!-- FLOATING BUTTONS -->
-    <button id="floating-home-btn" onclick="if(typeof goHomeAndScrollTop === 'function') goHomeAndScrollTop()" class="hidden fixed top-6 left-4 md:left-6 z-40 bg-white text-[#7fad39] border-2 border-[#7fad39] w-12 h-12 md:w-14 md:h-14 rounded-full shadow-lg items-center justify-center hover:bg-[#7fad39] hover:text-white transition-all duration-300 text-xl md:text-2xl">
+    <button id="floating-home-btn" onclick="if(typeof goHomeAndScrollTop === 'function') goHomeAndScrollTop()" class="hidden fixed top-24 left-4 md:left-6 z-40 bg-white text-[#7fad39] border-2 border-[#7fad39] w-12 h-12 md:w-14 md:h-14 rounded-full shadow-lg items-center justify-center hover:bg-[#7fad39] hover:text-white transition-all duration-300 text-xl md:text-2xl">
         <i class="fa-solid fa-arrow-left" style="-webkit-text-stroke: 2px;"></i>
     </button>
 
