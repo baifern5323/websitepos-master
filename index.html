@@ -56,11 +56,14 @@
 
     <!-- HERO & PROMOTION & SIDEBAR -->
     <section class="max-w-6xl mx-auto px-4 mb-8 flex flex-col md:flex-row gap-6">
+        
+        <!-- 🌟 ปรับแต่งกล่องหมวดหมู่ด้านซ้าย (ล็อกบนจอคอม และซ่อนลูกศร) -->
         <div class="w-full md:w-64 flex-shrink-0 relative z-30">
-            <div class="bg-[#7fad39] text-white px-6 py-4 flex items-center gap-3 font-bold cursor-pointer select-none rounded-t-lg" onclick="if(typeof toggleCategories === 'function') toggleCategories()">
+            <div class="bg-[#7fad39] text-white px-6 py-4 flex items-center gap-3 font-bold cursor-pointer lg:cursor-default select-none rounded-t-lg" onclick="if(typeof toggleCategories === 'function') toggleCategories()">
                 <i class="fa-solid fa-bars text-lg"></i>
                 หมวดหมู่ทั้งหมด
-                <i id="category-chevron" class="fa-solid fa-chevron-down ml-auto transition-transform duration-300"></i>
+                <!-- บนจอคอม (lg) จะซ่อนลูกศรทิ้งไป เพราะเราล็อกเมนูเปิดไว้ตลอด -->
+                <i id="category-chevron" class="fa-solid fa-chevron-down ml-auto transition-transform duration-300 lg:hidden"></i>
             </div>
             <ul id="sidebar-categories" class="hidden border border-t-0 border-gray-200 bg-white py-2 absolute w-full rounded-b-lg shadow-sm max-h-[400px] overflow-y-auto hide-scrollbar origin-top transition-all duration-300">
                 <!-- JS Insert -->
@@ -84,17 +87,15 @@
                 </div>
             </div>
 
-            <!-- 🌟 PROMOTION SLIDER (ดึงรูปจาก R2 มาแสดงตรงนี้) -->
+            <!-- PROMOTION SLIDER -->
             <div id="promotion-section" class="w-full h-[200px] md:h-[350px] relative overflow-hidden rounded-lg group scroll-mt-6 bg-gray-100 shadow-sm border border-gray-200">
                 
                 <div id="promo-slider" class="flex w-full h-full transition-transform duration-500 ease-in-out">
-                    <!-- JS จะนำรูปสไลด์มาแทรกที่นี่ -->
                     <div class="min-w-full h-full flex items-center justify-center">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7fad39]"></div>
                     </div>
                 </div>
 
-                <!-- ปุ่มเลื่อนซ้าย-ขวา -->
                 <button onclick="if(typeof prevPromoSlide === 'function') prevPromoSlide()" class="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
                     <i class="fa-solid fa-chevron-left"></i>
                 </button>
@@ -102,7 +103,6 @@
                     <i class="fa-solid fa-chevron-right"></i>
                 </button>
 
-                <!-- จุดบอกตำแหน่งสไลด์ (Dots) -->
                 <div id="promo-dots" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20"></div>
             </div>
         </div>
@@ -122,7 +122,9 @@
 
         <!-- สินค้าตามหมวดหมู่ -->
         <div>
-            <div id="tab-categories" class="hidden md:flex overflow-x-auto md:flex-wrap justify-start md:justify-center gap-4 md:gap-6 mb-8 pb-2 hide-scrollbar"></div>
+            <!-- 🌟 ปรับปรุงแท็บหมวดหมู่ (จะถูกซ่อนบนจอคอม lg:hidden และปรับเป็นแบบเลื่อนซ้ายขวา) -->
+            <div id="tab-categories" class="flex lg:hidden overflow-x-auto justify-start gap-3 mb-6 pb-2 hide-scrollbar px-1 snap-x"></div>
+            
             <div class="text-center mb-8 relative">
                 <h2 id="category-title" class="text-2xl md:text-3xl font-black text-black inline-block bg-white relative z-10 px-4 md:px-6">สินค้าทั้งหมด</h2>
                 <div class="absolute top-1/2 left-0 w-full h-[1px] bg-gray-200 z-0"></div>
@@ -178,7 +180,7 @@
         </div>
     </div>
 
-    <!-- ================= 🌟 FLOATING BUTTONS ================= -->
+    <!-- FLOATING BUTTONS -->
     <button id="floating-home-btn" onclick="if(typeof goHomeAndScrollTop === 'function') goHomeAndScrollTop()" class="hidden fixed top-6 left-4 md:left-6 z-40 bg-white text-[#7fad39] border-2 border-[#7fad39] w-12 h-12 md:w-14 md:h-14 rounded-full shadow-lg items-center justify-center hover:bg-[#7fad39] hover:text-white transition-all duration-300 text-xl md:text-2xl">
         <i class="fa-solid fa-arrow-left" style="-webkit-text-stroke: 2px;"></i>
     </button>
