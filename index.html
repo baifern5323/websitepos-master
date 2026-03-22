@@ -5,17 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SabuyShop - Ogani Style</title>
     
-    <!-- 1. ดึงเครื่องมือจากภายนอก (Tailwind, FontAwesome, Supabase) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- 2. นำเข้าไฟล์ CSS ของเราเอง -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-white text-gray-800">
 
-    <!-- HEADER TOP -->
     <div class="bg-[#f5f5f5] text-sm hidden md:block border-b border-gray-200">
         <div class="max-w-6xl mx-auto px-4 h-10 flex justify-between items-center text-gray-500">
             <div class="flex items-center gap-4">
@@ -29,7 +26,6 @@
         </div>
     </div>
 
-    <!-- MAIN HEADER -->
     <header class="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex items-center gap-2 cursor-pointer" onclick="setActiveCategory('All')">
             <h1 class="text-4xl font-black tracking-tighter text-black uppercase">SabuyShop</h1>
@@ -53,17 +49,16 @@
         </div>
     </header>
 
-    <!-- HERO & SIDEBAR -->
     <section class="max-w-6xl mx-auto px-4 mb-8 flex flex-col md:flex-row gap-6">
+        
         <div class="w-full md:w-64 flex-shrink-0 relative z-30">
-            <div class="bg-[#7fad39] text-white px-6 py-4 flex items-center gap-3 font-bold cursor-pointer select-none rounded-t-lg">
+            <div class="bg-[#7fad39] text-white px-6 py-4 flex items-center gap-3 font-bold cursor-pointer select-none rounded-t-lg" onclick="toggleCategories()">
                 <i class="fa-solid fa-bars text-lg"></i>
                 หมวดหมู่ทั้งหมด
-                <i class="fa-solid fa-chevron-down ml-auto"></i>
+                <i id="category-chevron" class="fa-solid fa-chevron-down ml-auto transition-transform duration-300"></i>
             </div>
-            <ul id="sidebar-categories" class="border border-t-0 border-gray-200 bg-white py-2 absolute w-full rounded-b-lg shadow-sm max-h-[400px] overflow-y-auto hide-scrollbar">
-                <!-- JS Insert -->
-            </ul>
+            <ul id="sidebar-categories" class="hidden border border-t-0 border-gray-200 bg-white py-2 absolute w-full rounded-b-lg shadow-sm max-h-[400px] overflow-y-auto hide-scrollbar origin-top transition-all duration-300">
+                </ul>
         </div>
 
         <div class="flex-1 flex flex-col gap-6">
@@ -96,9 +91,7 @@
         </div>
     </section>
 
-    <!-- PRODUCT AREA -->
     <section class="max-w-6xl mx-auto px-4 py-8">
-        <!-- 🔥 สินค้าขายดี -->
         <div id="hot-products-section" class="mb-12 md:mb-16 hidden">
             <div class="text-center mb-8 relative">
                 <h2 class="text-2xl md:text-3xl font-black text-black inline-block bg-white relative z-10 px-4 md:px-6">🔥 สินค้าขายดี</h2>
@@ -108,9 +101,8 @@
             <div id="hot-products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6"></div>
         </div>
 
-        <!-- สินค้าตามหมวดหมู่ -->
         <div>
-            <div id="tab-categories" class="flex overflow-x-auto md:flex-wrap justify-start md:justify-center gap-4 md:gap-6 mb-8 pb-2 hide-scrollbar"></div>
+            <div id="tab-categories" class="hidden md:flex overflow-x-auto md:flex-wrap justify-start md:justify-center gap-4 md:gap-6 mb-8 pb-2 hide-scrollbar"></div>
             <div class="text-center mb-8 relative">
                 <h2 id="category-title" class="text-2xl md:text-3xl font-black text-black inline-block bg-white relative z-10 px-4 md:px-6">สินค้าทั้งหมด</h2>
                 <div class="absolute top-1/2 left-0 w-full h-[1px] bg-gray-200 z-0"></div>
@@ -126,7 +118,6 @@
         </div>
     </section>
 
-    <!-- FOOTER -->
     <footer class="bg-[#f5f5f5] pt-12 pb-8 mt-12 border-t border-gray-200">
         <div class="max-w-6xl mx-auto px-4 text-center">
             <h1 class="text-2xl md:text-3xl font-black tracking-tighter text-black uppercase mb-3 md:mb-4">SabuyShop</h1>
@@ -135,7 +126,6 @@
         </div>
     </footer>
 
-    <!-- CART DRAWER -->
     <div id="cart-drawer" class="fixed inset-0 z-50 flex justify-end hidden">
         <div id="cart-overlay" class="absolute inset-0 bg-black/40 transition-opacity opacity-0" onclick="closeCart()"></div>
         <div id="cart-content" class="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col transition-transform translate-x-full duration-300">
@@ -165,6 +155,18 @@
             </div>
         </div>
     </div>
+
+    <!-- ================= 🌟 FLOATING BUTTONS (ปุ่มลอยตามหน้าจอ) ================= -->
+    <!-- 1. ปุ่มกลับหน้าหลัก/เลื่อนขึ้นบนสุด (ซ้ายบน: โชว์เมื่อเลื่อนหน้าจอลงมา) -->
+    <button id="floating-home-btn" onclick="goHomeAndScrollTop()" class="hidden fixed top-6 left-4 md:left-6 z-40 bg-white text-[#7fad39] border-2 border-[#7fad39] w-12 h-12 md:w-14 md:h-14 rounded-full shadow-lg items-center justify-center hover:bg-[#7fad39] hover:text-white transition-all duration-300 text-xl md:text-2xl">
+        <i class="fa-solid fa-arrow-left" style="-webkit-text-stroke: 2px;"></i>
+    </button>
+
+    <!-- 2. ปุ่มตะกร้าสินค้า (ขวาล่าง: แสดงตลอดเวลา) -->
+    <button onclick="openCart()" class="fixed bottom-6 right-4 md:right-6 z-40 bg-[#7fad39] text-white w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center hover:bg-[#6c9331] hover:scale-110 transition-all duration-300">
+        <i class="fa-solid fa-cart-shopping text-xl md:text-2xl"></i>
+        <span id="floating-cart-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] md:text-xs w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm">0</span>
+    </button>
 
     <!-- 3. นำเข้าไฟล์ระบบและฐานข้อมูล (JavaScript) -->
     <script src="js/app.js"></script>
