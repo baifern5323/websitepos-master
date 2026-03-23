@@ -101,9 +101,10 @@ async function fetchProductsFromCloud() {
                     is_hot: p.is_hot, 
                     units: units
                 };
-            }).filter(p => p.units.length > 0).sort((a, b) => a.name.localeCompare(b.name, 'th')); // 🌟 เพิ่มการเรียงลำดับสินค้าตามตัวอักษรภาษาไทยตรงนี้
+            }).filter(p => p.units.length > 0).sort((a, b) => a.name.localeCompare(b.name, 'th'));
         }
 
+        // 🌟 ดึงข้อมูลภาพโปรโมชั่นจาก Supabase
         const { data: promoData, error: promoError } = await supabaseClient
             .from('promotions')
             .select('*')
@@ -112,6 +113,35 @@ async function fetchProductsFromCloud() {
             
         if (!promoError && promoData) {
             promotions = promoData;
+        }
+
+        // 🌟 ดึงข้อมูลบริษัท (ดึงบรรทัดแรกมาแสดง)
+        const { data: companyData, error: companyError } = await supabaseClient
+            .from('company_profile')
+            .select('*')
+            .limit(1);
+            
+        if (!companyError && companyData && companyData.length > 0) {
+            const company = companyData[0];
+            
+            // อัปเดตชื่อบริษัทที่ Header และ Footer
+            const headerName = document.getElementById('header-company-name');
+            const footerName = document.getElementById('footer-company-name');
+            if (headerName) headerName.innerText = company.name;
+            if (footerName) footerName.innerText = company.name;
+            
+            // อัปเดตเบอร์โทรที่ Header และ Footer
+            const headerPhone = document.getElementById('header-company-phone');
+            const footerPhone = document.getElementById('footer-company-phone');
+            if (headerPhone && company.phone) headerPhone.innerText = company.phone;
+            if (footerPhone && company.phone) footerPhone.innerText = company.phone;
+
+            // 🌟 เพิ่มส่วนนี้: อัปเดตที่อยู่บริษัทที่ Footer
+            const footerAddress = document.getElementById('footer-company-address');
+            if (footerAddress && company.address && company.address.trim() !== '') {
+                footerAddress.innerText = company.address;
+                footerAddress.classList.remove('hidden'); // แสดงขึ้นมาเมื่อมีข้อมูล
+            }
         }
 
         init(); 
@@ -307,7 +337,7 @@ function renderProducts() {
 
     const catGrid = document.getElementById('category-products-grid');
     const emptyState = document.getElementById('empty-state');
-    const paginationContainer = document.getElementById('pagination-controls'); // 🌟 ดึงกล่องเปลี่ยนหน้า
+    const paginationContainer = document.getElementById('pagination-controls'); 
 
     const filteredCat = products.filter(p => {
         const matchSearch = p.name.toLowerCase().includes(searchQuery) || 
@@ -355,19 +385,16 @@ function renderPagination(totalPages) {
     paginationContainer.classList.remove('hidden');
     let html = '';
 
-    // ปุ่ม "ย้อนกลับ"
     const prevDisabled = currentPage === 1 ? 'disabled' : '';
     const prevClass = currentPage === 1 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'hover:bg-[#7fad39] hover:text-white text-gray-600 bg-white cursor-pointer';
     html += `<button onclick="if(typeof changePage === 'function') changePage(${currentPage - 1})" ${prevDisabled} class="w-10 h-10 rounded-full flex items-center justify-center border border-gray-200 transition-colors shadow-sm ${prevClass}"><i class="fa-solid fa-chevron-left"></i></button>`;
 
-    // คำนวณช่วงตัวเลขหน้า (โชว์สูงสุด 5 หน้า)
     let startP = Math.max(1, currentPage - 2);
     let endP = Math.min(totalPages, startP + 4);
     if (endP - startP < 4) {
         startP = Math.max(1, endP - 4);
     }
 
-    // ปุ่ม "ตัวเลขหน้า"
     for (let i = startP; i <= endP; i++) {
         if (i === currentPage) {
             html += `<button class="w-10 h-10 rounded-full flex items-center justify-center bg-[#7fad39] text-white font-bold shadow-md border border-[#7fad39]">${i}</button>`;
@@ -376,7 +403,6 @@ function renderPagination(totalPages) {
         }
     }
 
-    // ปุ่ม "ถัดไป"
     const nextDisabled = currentPage === totalPages ? 'disabled' : '';
     const nextClass = currentPage === totalPages ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400' : 'hover:bg-[#7fad39] hover:text-white text-gray-600 bg-white cursor-pointer';
     html += `<button onclick="if(typeof changePage === 'function') changePage(${currentPage + 1})" ${nextDisabled} class="w-10 h-10 rounded-full flex items-center justify-center border border-gray-200 transition-colors shadow-sm ${nextClass}"><i class="fa-solid fa-chevron-right"></i></button>`;
@@ -388,10 +414,9 @@ window.changePage = function(page) {
     currentPage = page;
     renderProducts();
     
-    // 🌟 เปลี่ยนจุดเลื่อนจอไปที่หัวข้อหมวดหมู่โดยตรง (ข้ามสินค้าขายดี)
     const targetTitle = document.getElementById('category-title');
     if (targetTitle) {
-        const yOffset = -140; // เผื่อระยะแถบค้นหาปักหมุดและแท็บมือถือ
+        const yOffset = -140; 
         const y = targetTitle.getBoundingClientRect().top + window.pageYOffset + yOffset;
         window.scrollTo({top: y, behavior: 'smooth'});
     }
@@ -402,17 +427,16 @@ window.changePage = function(page) {
 // ==========================================
 window.handleSearch = function(val) { 
     searchQuery = val.toLowerCase(); 
-    currentPage = 1; // 🌟 ค้นหาใหม่ ให้กลับไปหน้า 1 เสมอ
+    currentPage = 1; 
     renderProducts(); 
 }
 
 window.setActiveCategory = function(cat) {
     activeCategory = cat; 
-    currentPage = 1; // 🌟 เปลี่ยนหมวดหมู่ใหม่ ให้กลับไปหน้า 1 เสมอ
+    currentPage = 1; 
     document.getElementById('category-title').innerText = cat === 'All' ? 'สินค้าทั้งหมด' : cat;
     renderSidebar(); renderTabs(); renderProducts();
     
-    // 🌟 หุบเมนูอัตโนมัติบน iPad และหน้าจอมือถือ หลังจากที่ลูกค้ากดเลือกหมวดหมู่เสร็จ
     if (window.innerWidth < 1024) {
         const menu = document.getElementById('sidebar-categories');
         const chevron = document.getElementById('category-chevron');
@@ -422,10 +446,9 @@ window.setActiveCategory = function(cat) {
         }
     }
 
-    // 🌟 เปลี่ยนจุดเลื่อนจอไปที่หัวข้อหมวดหมู่โดยตรง (ข้ามสินค้าขายดี)
     const targetTitle = document.getElementById('category-title');
     if (targetTitle) {
-        const yOffset = -140; // เผื่อระยะแถบค้นหาปักหมุดและแท็บมือถือ
+        const yOffset = -140; 
         const y = targetTitle.getBoundingClientRect().top + window.pageYOffset + yOffset;
         window.scrollTo({top: y, behavior: 'smooth'});
     }
