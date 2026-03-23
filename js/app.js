@@ -716,6 +716,19 @@ window.checkoutViaLine = function() {
 // ==========================================
 // 🌟 8. ระบบปุ่มลอย (Floating Buttons)
 // ==========================================
+window.clearSearchAndGoHome = function() {
+    // ล้างข้อความในช่องค้นหาทุกช่องบนหน้าเว็บ
+    const searchInputs = document.querySelectorAll('input[placeholder*="ค้นหา"]');
+    searchInputs.forEach(input => input.value = '');
+    
+    // รีเซ็ตการค้นหา และกลับไปหมวดหมู่ทั้งหมด
+    searchQuery = '';
+    setActiveCategory('All');
+    
+    // เลื่อนหน้าจอกลับไปบนสุด
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 window.goHomeAndScrollTop = function() {
     setActiveCategory('All');
     window.scrollTo({ top: 0, behavior: 'smooth' });
