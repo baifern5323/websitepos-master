@@ -30,7 +30,6 @@ let promoSlideInterval;
 // 🌟 3. ฟังก์ชันควบคุมเมนูแฮมเบอร์เกอร์
 // ==========================================
 window.toggleCategories = function() {
-    // 🌟 ล็อกเมนูให้เปิดค้างไว้เสมอสำหรับหน้าจอคอมพิวเตอร์ (กว้าง 1024px ขึ้นไป) จะกดปิดไม่ได้
     if (window.innerWidth >= 1024) return;
 
     const menu = document.getElementById('sidebar-categories');
@@ -56,6 +55,9 @@ async function fetchProductsFromCloud() {
             return;
         }
         
+        let combinedProducts = [];
+
+        // 🌟 4.1 ดึงข้อมูลสินค้าปกติ (Products)
         const { data: productData, error: productError } = await supabaseClient
             .from('products')
             .select(`
@@ -64,12 +66,10 @@ async function fetchProductsFromCloud() {
                 product_units (*)
             `);
 
-        if (productError) throw productError;
-
-        if (productData && productData.length > 0) {
+        if (!productError && productData && productData.length > 0) {
             const activeData = productData.filter(p => p.status !== 1 && p.show_on_web === true);
 
-            products = activeData.map(p => {
+            const standardProducts = activeData.map(p => {
                 let units = [];
                 const sUnitName = p.s_unit ? p.s_unit.trim() : 'ชิ้น';
                 if (p.web_show_s_unit && p.price1 > 0) {
@@ -101,10 +101,41 @@ async function fetchProductsFromCloud() {
                     is_hot: p.is_hot, 
                     units: units
                 };
-            }).filter(p => p.units.length > 0).sort((a, b) => a.name.localeCompare(b.name, 'th'));
+            });
+            combinedProducts = [...combinedProducts, ...standardProducts];
         }
 
-        // 🌟 ดึงข้อมูลภาพโปรโมชั่นจาก Supabase
+        // 🌟 4.2 ดึงข้อมูลสินค้าชุด (ProductSets)
+        const { data: setData, error: setError } = await supabaseClient
+            .from('product_sets')
+            .select('*');
+
+        if (!setError && setData && setData.length > 0) {
+            const activeSets = setData.filter(p => p.status !== 1 && p.is_hot === true);
+            
+            const setProducts = activeSets.map(p => {
+                return {
+                    id: `SET_${p.psn}`,
+                    barcode: p.barcode,
+                    name: p.name,
+                    price: p.price1,
+                    stock: 999,
+                    image_url: p.image_url,
+                    web_detail: 'สินค้าจัดเซ็ตสุดคุ้ม', 
+                    category: 'สินค้าจัดเซ็ต', 
+                    is_hot: p.is_hot, 
+                    units: [{ name: p.unit ? p.unit.trim() : 'ชุด', price: p.price1 }]
+                };
+            });
+            combinedProducts = [...combinedProducts, ...setProducts];
+        }
+
+        if (combinedProducts.length > 0) {
+            products = combinedProducts
+                .filter(p => p.units.length > 0)
+                .sort((a, b) => a.name.localeCompare(b.name, 'th'));
+        }
+
         const { data: promoData, error: promoError } = await supabaseClient
             .from('promotions')
             .select('*')
@@ -115,7 +146,6 @@ async function fetchProductsFromCloud() {
             promotions = promoData;
         }
 
-        // 🌟 ดึงข้อมูลบริษัท (ดึงบรรทัดแรกมาแสดง)
         const { data: companyData, error: companyError } = await supabaseClient
             .from('company_profile')
             .select('*')
@@ -124,23 +154,20 @@ async function fetchProductsFromCloud() {
         if (!companyError && companyData && companyData.length > 0) {
             const company = companyData[0];
             
-            // อัปเดตชื่อบริษัทที่ Header และ Footer
             const headerName = document.getElementById('header-company-name');
             const footerName = document.getElementById('footer-company-name');
             if (headerName) headerName.innerText = company.name;
             if (footerName) footerName.innerText = company.name;
             
-            // อัปเดตเบอร์โทรที่ Header และ Footer
             const headerPhone = document.getElementById('header-company-phone');
             const footerPhone = document.getElementById('footer-company-phone');
             if (headerPhone && company.phone) headerPhone.innerText = company.phone;
             if (footerPhone && company.phone) footerPhone.innerText = company.phone;
 
-            // 🌟 เพิ่มส่วนนี้: อัปเดตที่อยู่บริษัทที่ Footer
             const footerAddress = document.getElementById('footer-company-address');
             if (footerAddress && company.address && company.address.trim() !== '') {
                 footerAddress.innerText = company.address;
-                footerAddress.classList.remove('hidden'); // แสดงขึ้นมาเมื่อมีข้อมูล
+                footerAddress.classList.remove('hidden'); 
             }
         }
 
@@ -155,12 +182,16 @@ async function fetchProductsFromCloud() {
 // 5. ฟังก์ชันแสดงผลหน้าเว็บ (UI Render)
 // ==========================================
 function init() {
-    // 🌟 ดึงรายชื่อหมวดหมู่ที่ไม่ซ้ำกัน และสั่งเรียงลำดับตัวอักษรภาษาไทย (ก-ฮ, A-Z)
     categories = [...new Set(products.map(p => p.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th'));
     document.getElementById('loading-spinner').style.display = 'none';
-    document.getElementById('category-products-grid').classList.remove('hidden');
     
-    // 🌟 เช็คหน้าจอตอนเริ่มต้น (คอมพิวเตอร์=เปิดเมนูค้างไว้, iPad/มือถือ=ซ่อนเมนู)
+    // 🌟 คืนค่าโครงสร้างสินค้าทั้งหมดให้เป็นแบบ Grid (เรียง 4 แถวปกติ ไม่ต้องเลื่อนแนวนอน)
+    const catGrid = document.getElementById('category-products-grid');
+    if (catGrid) {
+        catGrid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6';
+        catGrid.style.scrollSnapType = '';
+    }
+    
     const menu = document.getElementById('sidebar-categories');
     const chevron = document.getElementById('category-chevron');
     if (menu && chevron) {
@@ -177,6 +208,69 @@ function init() {
     renderSidebar(); 
     renderTabs(); 
     renderProducts();
+
+    // 🌟 เลื่อนเมาส์ได้เฉพาะ "สินค้าขายดี" และ "แท็บหมวดหมู่" เท่านั้น
+    enableMouseDrag('hot-products-grid');
+    enableMouseDrag('tab-categories');
+}
+
+// 🌟 ฟังก์ชันเสริม: เลื่อนซ้ายขวาด้วยเมาส์ (รองรับทั้งคลิกซ้าย, กดลูกกลิ้ง และหมุนลูกกลิ้ง)
+function enableMouseDrag(elementId) {
+    const slider = document.getElementById(elementId);
+    if (!slider) return;
+
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    slider.addEventListener('mousedown', (e) => {
+        // รองรับทั้งคลิกซ้าย (0) และกดลูกกลิ้งเมาส์ (1)
+        if (e.button !== 0 && e.button !== 1) return;
+        if (e.button === 1) e.preventDefault(); // ป้องกันหน้าต่าง Auto-scroll ของเบราว์เซอร์
+
+        isDown = true;
+        slider.style.cursor = 'grabbing';
+        slider.style.scrollSnapType = 'none'; 
+        startX = e.pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener('mouseleave', () => {
+        isDown = false;
+        slider.style.cursor = 'grab';
+        slider.style.scrollSnapType = 'x mandatory';
+    });
+
+    slider.addEventListener('mouseup', () => {
+        isDown = false;
+        slider.style.cursor = 'grab';
+        slider.style.scrollSnapType = 'x mandatory';
+    });
+
+    slider.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault(); // ป้องกันเมาส์ไปคลุมดำ (Highlight) ตัวหนังสือตอนลาก
+        const x = e.pageX - slider.offsetLeft;
+        const walk = (x - startX) * 1.5; 
+        slider.scrollLeft = scrollLeft - walk;
+    });
+
+    // 🌟 เพิ่มฟังก์ชันโบนัส: "หมุน" ลูกกลิ้งเมาส์เพื่อเลื่อนซ้ายขวาได้เลย
+    slider.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+            e.preventDefault(); // ป้องกันหน้าเว็บเลื่อนขึ้นลงตอนหมุนลูกกลิ้งในกรอบนี้
+            slider.style.scrollSnapType = 'none';
+            // ปรับความเร็วในการเลื่อนตอนหมุนลูกกลิ้ง (เลข 100)
+            slider.scrollLeft += e.deltaY > 0 ? 100 : -100; 
+            
+            clearTimeout(slider.wheelTimeout);
+            slider.wheelTimeout = setTimeout(() => {
+                slider.style.scrollSnapType = 'x mandatory';
+            }, 150);
+        }
+    }, { passive: false });
+
+    slider.style.cursor = 'grab';
 }
 
 function renderPromotions() {
@@ -248,16 +342,32 @@ function resetPromoTimer() {
     startPromoTimer();
 }
 
+// 🌟 ปรับแต่ง Sidebar ให้หมวดหมู่ "สินค้าจัดเซ็ต" โดดเด่น
 function renderSidebar() {
     const ul = document.getElementById('sidebar-categories');
-    let html = `<li><button onclick="setActiveCategory('All')" class="w-full text-left px-6 py-2 hover:text-[#7fad39] transition text-sm ${activeCategory === 'All' ? 'text-[#7fad39] font-bold' : ''}">สินค้าทั้งหมด</button></li>`;
+    let html = `<li><button onclick="setActiveCategory('All')" class="w-full text-left px-6 py-2 hover:text-[#7fad39] transition text-sm ${activeCategory === 'All' ? 'text-[#7fad39] font-bold bg-green-50 border-l-4 border-[#7fad39]' : 'text-gray-600 border-l-4 border-transparent'}">สินค้าทั้งหมด</button></li>`;
+    
     categories.forEach(cat => {
-        html += `<li><button onclick="setActiveCategory('${cat}')" class="w-full text-left px-6 py-2 hover:text-[#7fad39] transition text-sm ${activeCategory === cat ? 'text-[#7fad39] font-bold' : ''}">${cat}</button></li>`;
+        const isSpecial = cat === 'สินค้าจัดเซ็ต';
+        let textClass = '';
+        
+        if (activeCategory === cat) {
+            textClass = isSpecial 
+                ? 'text-orange-600 font-extrabold bg-orange-50 border-l-4 border-orange-500' 
+                : 'text-[#7fad39] font-bold bg-green-50 border-l-4 border-[#7fad39]';
+        } else {
+            textClass = isSpecial 
+                ? 'text-orange-500 font-bold hover:bg-orange-50 hover:text-orange-600 border-l-4 border-transparent' 
+                : 'text-gray-600 hover:text-[#7fad39] hover:bg-gray-50 border-l-4 border-transparent';
+        }
+        
+        const icon = isSpecial ? '<i class="fa-solid fa-gift mr-2 animate-pulse"></i>' : '';
+        html += `<li><button onclick="setActiveCategory('${cat}')" class="w-full text-left px-6 py-2 transition text-sm ${textClass}">${icon}${cat}</button></li>`;
     });
     ul.innerHTML = html;
 }
 
-// 🌟 ปรับปรุง: วาดปุ่มหมวดหมู่แนวนอนใหม่ให้เป็น "แคปซูล" สวยๆ
+// 🌟 ปรับแต่ง Tabs แคปซูลให้หมวดหมู่ "สินค้าจัดเซ็ต" โดดเด่น
 function renderTabs() {
     const container = document.getElementById('tab-categories');
     if (!container) return;
@@ -265,7 +375,21 @@ function renderTabs() {
     let html = `<button onclick="setActiveCategory('All')" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold border transition-all duration-300 shadow-sm flex-shrink-0 ${activeCategory === 'All' ? 'bg-[#7fad39] text-white border-[#7fad39]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#7fad39] hover:text-[#7fad39]'}">ทั้งหมด</button>`;
     
     categories.forEach(cat => {
-        html += `<button onclick="setActiveCategory('${cat}')" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold border transition-all duration-300 shadow-sm flex-shrink-0 ${activeCategory === cat ? 'bg-[#7fad39] text-white border-[#7fad39]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#7fad39] hover:text-[#7fad39]'}">${cat}</button>`;
+        const isSpecial = cat === 'สินค้าจัดเซ็ต';
+        let btnClass = '';
+        
+        if (activeCategory === cat) {
+            btnClass = isSpecial 
+                ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white border-transparent shadow-md' 
+                : 'bg-[#7fad39] text-white border-[#7fad39]';
+        } else {
+            btnClass = isSpecial 
+                ? 'bg-orange-50 text-orange-600 border-orange-300 hover:border-orange-500 hover:bg-orange-500 hover:text-white' 
+                : 'bg-white text-gray-600 border-gray-200 hover:border-[#7fad39] hover:text-[#7fad39]';
+        }
+        
+        const icon = isSpecial ? '<i class="fa-solid fa-gift mr-1"></i> ' : '';
+        html += `<button onclick="setActiveCategory('${cat}')" class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold border transition-all duration-300 shadow-sm flex-shrink-0 ${btnClass}">${icon}${cat}</button>`;
     });
     
     container.innerHTML = html;
@@ -292,26 +416,47 @@ function createProductCard(product) {
 
     const displayCode = product.barcode ? product.barcode : '&nbsp;';
 
+    // 🌟 ดักเช็คถ้าเป็นสินค้าจัดเซ็ต ให้เปลี่ยน Detail ธรรมดา เป็นป้าย Badge สีส้มสุดพรีเมียม
+    const renderWebDetail = () => {
+        if (product.category === 'สินค้าจัดเซ็ต') {
+            return `<div class="h-7 md:h-8 mb-2 w-full text-left">
+                        <span class="inline-flex items-center gap-1 bg-gradient-to-r from-orange-400 to-red-500 text-white text-[10px] md:text-xs font-bold px-2.5 py-0.5 rounded-md shadow-sm">
+                            <i class="fa-solid fa-gift"></i> ${product.web_detail || 'เซ็ตสุดคุ้ม'}
+                        </span>
+                    </div>`;
+        } else if (product.web_detail) {
+            return `<p class="text-[10px] md:text-xs text-gray-500 line-clamp-2 mb-2 leading-snug text-left w-full h-7 md:h-8" title="${product.web_detail}">${product.web_detail}</p>`;
+        } else {
+            return `<div class="h-7 md:h-8 mb-2 w-full"></div>`;
+        }
+    };
+
+    // 🌟 ปรับแต่งคลาสของกรอบการ์ดให้โดดเด่นถ้าเป็นสินค้า Hot Product
+    const cardStyle = product.is_hot 
+        ? 'border-2 border-red-400 shadow-md shadow-red-100 hover:shadow-lg hover:shadow-red-200 hover:border-red-500 bg-gradient-to-b from-red-50/30 to-white' 
+        : 'border border-gray-100 hover:border-[#7fad39]/30 shadow-sm hover:shadow-md bg-white';
+
+    // 🌟 ปรับสีราคาและปุ่มตะกร้าให้เข้ากับธีม Hot Product
+    const priceColor = product.is_hot ? 'text-red-600' : 'text-black';
+    const btnColor = product.is_hot ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600' : 'bg-[#7fad39] hover:bg-[#6c9331]';
+
     return `
-    <div class="group flex flex-col items-center relative border border-gray-100 hover:border-[#7fad39]/30 pb-3 md:pb-4 rounded-xl transition-all shadow-sm hover:shadow-md bg-white overflow-hidden">
+    <div class="group flex flex-col items-center relative pb-3 md:pb-4 rounded-xl transition-all overflow-hidden w-full h-full ${cardStyle}">
         <div class="w-full aspect-[4/3] bg-[#f5f5f5] relative overflow-hidden mb-2 md:mb-4">
             <img src="${product.image_url}" onerror="this.src='https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image'" class="w-full h-full object-cover transition duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}" />
-            ${!isOutOfStock && product.is_hot ? '<div class="absolute top-2 right-2 md:top-3 md:right-3 bg-red-500 text-white text-[10px] md:text-xs font-black px-2 py-0.5 md:px-2.5 md:py-1 rounded-full shadow-md z-10 animate-pulse">HOT</div>' : ''}
-            ${isOutOfStock ? '<div class="absolute top-2 left-2 md:top-3 md:left-3 bg-red-500 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 md:px-3 md:py-1 rounded-sm z-10">SOLD OUT</div>' : ''}
+            ${!isOutOfStock && product.is_hot ? '<div class="absolute top-2 right-2 md:top-3 md:right-3 bg-gradient-to-r from-red-500 to-rose-500 text-white text-[10px] md:text-xs font-black px-3 py-1 rounded-full shadow-lg shadow-red-500/40 z-10 animate-pulse border border-white/30"><i class="fa-solid fa-fire mr-1"></i>HOT</div>' : ''}
+            ${isOutOfStock ? '<div class="absolute top-2 left-2 md:top-3 md:left-3 bg-gray-800 text-white text-[10px] md:text-xs font-bold px-3 py-1 rounded-sm z-10 shadow-md">SOLD OUT</div>' : ''}
         </div>
         <div class="text-center w-full px-2 md:px-4 flex flex-col flex-1">
             <h6 class="text-gray-400 text-[10px] md:text-xs mb-1 font-mono">${displayCode}</h6>
             <a href="#" class="text-sm md:text-lg text-black font-medium hover:text-[#7fad39] transition line-clamp-2 mb-1 h-10 md:h-14 leading-tight">${product.name}</a>
             
-            ${product.web_detail 
-                ? `<p class="text-[10px] md:text-xs text-gray-500 line-clamp-2 mb-2 leading-snug text-left w-full h-7 md:h-8" title="${product.web_detail}">${product.web_detail}</p>` 
-                : `<div class="h-7 md:h-8 mb-2 w-full"></div>` 
-            }
+            ${renderWebDetail()}
 
             <div class="mt-auto mb-2 md:mb-3">${unitSelectHtml}</div>
             <div class="flex justify-between items-center w-full mt-1">
-                <h5 class="text-base md:text-xl font-bold text-black text-left">฿${Number(currentUnit.price).toLocaleString()}</h5>
-                <button onclick="addToCart('${product.id}')" ${isOutOfStock ? 'disabled' : ''} class="w-8 h-8 md:w-10 md:h-10 bg-[#7fad39] rounded-full flex items-center justify-center text-white hover:bg-[#6c9331] disabled:bg-gray-300 transition-colors shadow-sm shrink-0">
+                <h5 class="text-base md:text-xl font-bold ${priceColor} text-left">฿${Number(currentUnit.price).toLocaleString()}</h5>
+                <button onclick="addToCart('${product.id}')" ${isOutOfStock ? 'disabled' : ''} class="w-8 h-8 md:w-10 md:h-10 ${btnColor} rounded-full flex items-center justify-center text-white disabled:bg-gray-300 disabled:from-gray-300 disabled:to-gray-300 transition-all shadow-sm shrink-0 hover:scale-105">
                     <i class="fa-solid fa-cart-shopping text-sm md:text-base"></i>
                 </button>
             </div>
@@ -331,8 +476,12 @@ function renderProducts() {
     
     if (filteredHot.length > 0) {
         hotSection.classList.remove('hidden');
-        // 🌟 จำกัดให้โชว์สินค้าขายดีแค่ 4 ชิ้น (1 แถว) เพื่อไม่ให้แย่งความสนใจ
-        hotGrid.innerHTML = filteredHot.slice(0, 4).map(p => createProductCard(p)).join('');
+        // 🌟 แก้ไข: ยกเลิกการจำกัดจำนวน ให้แสดงสินค้าขายดีทั้งหมดเวลาเลื่อน
+        hotGrid.innerHTML = filteredHot.map(p => `
+            <div class="w-[160px] md:w-[240px] shrink-0 snap-start flex">
+                ${createProductCard(p)}
+            </div>
+        `).join('');
     } else { hotSection.classList.add('hidden'); }
 
     const catGrid = document.getElementById('category-products-grid');
@@ -349,18 +498,19 @@ function renderProducts() {
 
     if (filteredCat.length > 0) {
         emptyState.classList.add('hidden');
+        catGrid.classList.remove('hidden'); 
         
-        // 🌟 ระบบคำนวณและตัดแบ่งหน้า (Pagination Logic)
         const totalPages = Math.ceil(filteredCat.length / itemsPerPage);
         const startIndex = (currentPage - 1) * itemsPerPage;
         const paginatedCat = filteredCat.slice(startIndex, startIndex + itemsPerPage);
         
+        // 🌟 กลับมาวาดการ์ดสินค้าแบบเต็มพื้นที่ตารางปกติ
         catGrid.innerHTML = paginatedCat.map(p => createProductCard(p)).join('');
         
-        // 🌟 วาดปุ่มเปลี่ยนหน้า
         renderPagination(totalPages);
     } else {
         catGrid.innerHTML = ''; 
+        catGrid.classList.add('hidden'); 
         emptyState.classList.remove('hidden');
         if (paginationContainer) {
             paginationContainer.innerHTML = '';
@@ -369,9 +519,6 @@ function renderProducts() {
     }
 }
 
-// ==========================================
-// 🌟 ฟังก์ชันวาดปุ่มเปลี่ยนหน้า (Pagination UI)
-// ==========================================
 function renderPagination(totalPages) {
     const paginationContainer = document.getElementById('pagination-controls');
     if (!paginationContainer) return;
@@ -555,13 +702,13 @@ window.closeCart = function() {
 
 window.checkoutViaLine = function() {
     if (cart.length === 0) return;
-    let orderText = `🛒 *สั่งซื้อสินค้าจากเว็บ*\n\n`;
+    let orderText = `🛒 *สั่งซื้อสินค้าจากเว็บ*\\n\\n`;
     cart.forEach((item, index) => { 
         const codeLine = item.barcode ? `บาร์โค้ด: ${item.barcode}` : `รหัส: ${item.id}`;
-        orderText += `${index + 1}. ${item.name}\n   ${codeLine}\n   จำนวน: ${item.qty} ${item.unitName} (฿${(item.price * item.qty).toLocaleString()})\n\n`; 
+        orderText += `${index + 1}. ${item.name}\\n   ${codeLine}\\n   จำนวน: ${item.qty} ${item.unitName} (฿${(item.price * item.qty).toLocaleString()})\\n\\n`; 
     });
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    orderText += `💰 *ยอดรวมทั้งสิ้น: ฿${totalAmount.toLocaleString()}*\n\nรบกวนแอดมินสรุปยอดให้ด้วยครับ/ค่ะ`;
+    orderText += `💰 *ยอดรวมทั้งสิ้น: ฿${totalAmount.toLocaleString()}*\\n\\nรบกวนแอดมินสรุปยอดให้ด้วยครับ/ค่ะ`;
     const encodedText = encodeURIComponent(orderText);
     window.open(`https://line.me/R/oaMessage/${LINE_OA_ID}/?${encodedText}`, '_blank');
 }
