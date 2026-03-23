@@ -123,7 +123,8 @@
                 <div class="absolute top-1/2 left-0 w-full h-[1px] bg-gray-200 z-0"></div>
                 <div class="w-16 md:w-20 h-[3px] bg-red-500 mx-auto mt-3 md:mt-4 relative z-10"></div>
             </div>
-            <div id="hot-products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6"></div>
+            <!-- 🌟 ปรับคลาสตรงนี้ให้เป็น flex และเลื่อนได้ (overflow-x-auto) -->
+            <div id="hot-products-grid" class="flex overflow-x-auto gap-4 md:gap-6 pb-6 pt-2 snap-x hide-scrollbar" style="scroll-snap-type: x mandatory;"></div>
         </div>
 
         <!-- สินค้าตามหมวดหมู่ -->
