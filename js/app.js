@@ -101,7 +101,7 @@ async function fetchProductsFromCloud() {
                     is_hot: p.is_hot, 
                     units: units
                 };
-            }).filter(p => p.units.length > 0);
+            }).filter(p => p.units.length > 0).sort((a, b) => a.name.localeCompare(b.name, 'th')); // 🌟 เพิ่มการเรียงลำดับสินค้าตามตัวอักษรภาษาไทยตรงนี้
         }
 
         const { data: promoData, error: promoError } = await supabaseClient
