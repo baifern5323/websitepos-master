@@ -15,72 +15,88 @@
 </head>
 <body class="bg-white text-gray-800">
 
-    <!-- ================= HEADER TOP (แถบสีเทาด้านบนสุด) ================= -->
-    <div class="bg-[#f5f5f5] text-sm hidden md:block border-b border-gray-200">
-        <div class="max-w-6xl mx-auto px-4 h-10 flex justify-between items-center text-gray-500">
-            <div class="flex items-center gap-4">
-                <span class="flex items-center gap-2 border-r border-gray-300 pr-4">
-                    <i class="fa-solid fa-envelope"></i> contact@sabuyshop.com
-                </span>
-            </div>
-            <div class="flex items-center gap-4">
-                <button class="flex items-center gap-1 hover:text-[#7fad39] transition"><i class="fa-solid fa-user"></i> ล็อกอิน</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= 🌟 MAIN HEADER & SEARCH (รวมร่างเป็นชิ้นเดียว เลื่อนตามจอ) ================= -->
-    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 pb-3 md:pb-4 pt-3 md:pt-4 transition-all">
-        <div class="max-w-6xl mx-auto px-4">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+    <!-- ================= 🌟 MAIN HEADER & SEARCH ================= -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 pb-3 pt-3 transition-all">
+        <div class="max-w-6xl mx-auto px-4 flex flex-col gap-3 md:gap-4">
+            
+            <!-- 🌟 บรรทัดที่ 1: โลโก้ + เมนู(คอม) + เบอร์โทร + ล็อกอิน -->
+            <div class="flex justify-between items-center w-full">
                 
-                <!-- 1. โลโก้ และ เบอร์โทร -->
-                <div class="flex justify-between items-center w-full md:w-auto">
-                    <div class="flex items-center gap-2 cursor-pointer" onclick="if(typeof clearSearchAndGoHome === 'function') clearSearchAndGoHome()">
-                        <h1 id="header-company-name" class="text-3xl md:text-4xl font-black tracking-tighter text-black uppercase hover:text-[#7fad39] transition-colors">SabuyShop</h1>
+                <!-- ซ้าย: โลโก้ และ เบอร์โทร -->
+                <div class="flex items-center gap-2 md:gap-6">
+                    <div class="cursor-pointer shrink-0" onclick="if(typeof clearSearchAndGoHome === 'function') clearSearchAndGoHome()">
+                        <h1 id="header-company-name" class="text-xl md:text-4xl font-black tracking-tighter text-black uppercase hover:text-[#7fad39] transition-colors">SabuyShop</h1>
                     </div>
                     
-                    <!-- เบอร์โทรช่วยเหลือ (โชว์เฉพาะจอคอม) -->
-                    <div class="hidden lg:flex items-center gap-3 ml-8">
-                        <div class="w-10 h-10 rounded-full bg-[#f5f5f5] flex items-center justify-center text-[#7fad39]">
-                            <i class="fa-solid fa-phone text-lg"></i>
+                    <div class="hidden md:block w-px h-8 bg-gray-200"></div>
+
+                    <!-- เบอร์โทรช่วยเหลือ (โชว์ทั้งมือถือและคอม) -->
+                    <div class="flex items-center gap-1.5 md:gap-3">
+                        <div class="w-7 h-7 md:w-10 md:h-10 rounded-full bg-green-50 flex items-center justify-center text-[#7fad39] shrink-0">
+                            <i class="fa-solid fa-phone text-xs md:text-lg"></i>
                         </div>
-                        <div>
-                            <div id="header-company-phone" class="font-black text-sm text-black leading-none mb-1">02-123-4567</div>
-                            <div class="text-[10px] text-gray-500 leading-none">บริการช่วยเหลือ 24 ชม.</div>
+                        <div class="flex flex-col justify-center">
+                            <div id="header-company-phone" class="font-black text-[11px] md:text-sm text-black leading-none mb-0.5 md:mb-1">02-123-4567</div>
+                            <div class="text-[9px] md:text-[10px] text-gray-500 leading-none">บริการ 24 ชม.</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 2. แถบค้นหา + ปุ่มย้อนกลับ (รวมเป็นก้อนเดียวกัน) -->
-                <div class="flex items-center gap-2 w-full md:max-w-xl flex-1">
-                    <button onclick="if(typeof clearSearchAndGoHome === 'function') clearSearchAndGoHome()" class="w-10 h-10 md:w-11 md:h-11 shrink-0 rounded-full bg-gray-50 text-gray-500 hover:bg-[#7fad39] hover:text-white flex items-center justify-center transition-colors shadow-sm border border-gray-200" title="กลับหน้าแรก">
-                        <i class="fa-solid fa-arrow-left text-base"></i>
+                <!-- 🌟 กลาง: เมนูนำทาง (โชว์เฉพาะจอคอมพิวเตอร์) -->
+                <nav class="hidden lg:flex gap-5 xl:gap-8 font-bold text-sm tracking-wide">
+                    <a href="#" onclick="if(typeof goHomeAndScrollTop === 'function') { goHomeAndScrollTop(); return false; }" class="text-[#7fad39]">HOME</a>
+                    <a href="#shop-section" onclick="if(typeof setActiveCategory === 'function') setActiveCategory('All')" class="hover:text-[#7fad39] transition">SHOP</a>
+                    <a href="#promotion-slider-section" class="hover:text-[#7fad39] transition">PROMOTION</a>
+                    <a href="#footer-section" class="hover:text-[#7fad39] transition">CONTACT</a>
+                </nav>
+
+                <!-- ขวา: ล็อกอิน + ตะกร้า -->
+                <div class="flex items-center gap-2 md:gap-4 shrink-0">
+                    <button class="flex items-center gap-1 md:gap-1.5 text-[11px] md:text-sm text-gray-600 hover:text-[#7fad39] transition font-bold bg-gray-50 px-2.5 py-1.5 md:px-4 md:py-2 rounded-full border border-gray-200 shadow-sm shrink-0">
+                        <i class="fa-solid fa-user text-[#7fad39]"></i> ล็อกอิน
                     </button>
-                    
-                    <div class="flex flex-1 border-[1.5px] border-[#7fad39] rounded-lg overflow-hidden h-10 md:h-11 shadow-sm bg-white focus-within:ring-2 focus-within:ring-[#7fad39]/20 transition-all">
-                        <input type="text" id="search-input" placeholder="ค้นหาชื่อสินค้า หรือ บาร์โค้ด..." class="flex-1 px-3 md:px-4 outline-none text-sm bg-transparent" oninput="if(typeof handleSearch === 'function') handleSearch(this.value)">
-                        <button class="bg-[#7fad39] text-white px-4 md:px-6 font-bold hover:bg-[#6c9331] transition text-sm">ค้นหา</button>
-                    </div>
-                </div>
 
-                <!-- 3. ข้อมูลตะกร้า (โชว์บนคอม มือถือจะใช้ปุ่มลอยแทน) -->
-                <div class="hidden md:flex items-center gap-4 ml-4">
-                    <div class="relative cursor-pointer hover:text-[#7fad39] transition" onclick="if(typeof openCart === 'function') openCart()">
-                        <i class="fa-solid fa-cart-shopping text-2xl"></i>
-                        <span id="cart-badge" class="hidden absolute -top-2 -right-2 bg-[#7fad39] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm">0</span>
-                    </div>
-                    <div class="text-gray-500 text-sm hidden lg:block">
-                        รายการ: <span class="text-black font-bold" id="cart-header-total">฿0</span>
+                    <!-- ข้อมูลตะกร้า (โชว์บนคอม มือถือจะใช้ปุ่มลอยแทน) -->
+                    <div class="hidden md:flex items-center gap-3 pl-2 md:pl-4 border-l border-gray-200">
+                        <div class="relative cursor-pointer hover:text-[#7fad39] transition" onclick="if(typeof openCart === 'function') openCart()">
+                            <i class="fa-solid fa-cart-shopping text-2xl"></i>
+                            <span id="cart-badge" class="hidden absolute -top-2 -right-2 bg-[#7fad39] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm">0</span>
+                        </div>
+                        <div class="text-gray-500 text-sm hidden lg:block">
+                            <span class="text-black font-bold" id="cart-header-total">฿0</span>
+                        </div>
                     </div>
                 </div>
 
             </div>
+
+            <!-- 🌟 บรรทัดที่ 2: แถบค้นหา + ปุ่มย้อนกลับ -->
+            <div class="flex items-center gap-2 w-full">
+                <!-- ปุ่มย้อนกลับ -->
+                <button onclick="if(typeof clearSearchAndGoHome === 'function') clearSearchAndGoHome()" class="w-10 h-10 md:w-11 md:h-11 shrink-0 rounded-full bg-gray-50 text-gray-500 hover:bg-[#7fad39] hover:text-white flex items-center justify-center transition-colors shadow-sm border border-gray-200" title="กลับหน้าแรก">
+                    <i class="fa-solid fa-arrow-left text-base"></i>
+                </button>
+                
+                <!-- กล่องค้นหา -->
+                <div class="flex flex-1 border-[1.5px] border-[#7fad39] rounded-lg overflow-hidden h-10 md:h-11 shadow-sm bg-white focus-within:ring-2 focus-within:ring-[#7fad39]/20 transition-all">
+                    <input type="text" id="search-input" placeholder="ค้นหาชื่อสินค้า หรือ บาร์โค้ด..." class="flex-1 px-3 md:px-4 outline-none text-sm bg-transparent" oninput="if(typeof handleSearch === 'function') handleSearch(this.value)">
+                    <button class="bg-[#7fad39] text-white px-4 md:px-8 font-bold hover:bg-[#6c9331] transition text-sm md:text-base">ค้นหา</button>
+                </div>
+            </div>
+
+            <!-- 🌟 บรรทัดที่ 3: เมนูนำทาง (โชว์เฉพาะมือถือ) -->
+            <nav id="mobile-nav-menu" class="flex lg:hidden justify-between items-center w-full pt-2 border-t border-gray-100 text-[11px] sm:text-xs font-bold tracking-widest text-gray-500 uppercase transition-all duration-300">
+                <a href="#" onclick="if(typeof goHomeAndScrollTop === 'function') { goHomeAndScrollTop(); return false; }" class="text-[#7fad39]">HOME</a>
+                <a href="#shop-section" onclick="if(typeof setActiveCategory === 'function') setActiveCategory('All')" class="hover:text-[#7fad39] transition">SHOP</a>
+                <a href="#promotion-slider-section" class="hover:text-[#7fad39] transition">PROMOTION</a>
+                <a href="#footer-section" class="hover:text-[#7fad39] transition">CONTACT</a>
+            </nav>
+
         </div>
     </header>
 
     <!-- ================= 🌟 HERO & SIDEBAR (โปรโมชั่นและหมวดหมู่) ================= -->
-    <section class="max-w-6xl mx-auto px-4 py-4 md:py-6 flex flex-col md:flex-row gap-4 md:gap-6">
+    <section id="promotion-slider-section" class="max-w-6xl mx-auto px-4 py-4 md:py-6 flex flex-col md:flex-row gap-4 md:gap-6 scroll-mt-28">
         
         <!-- เมนูหมวดหมู่ด้านซ้าย (กดเปิด/ปิดได้) -->
         <div class="w-full md:w-64 shrink-0 relative z-40">
@@ -95,7 +111,7 @@
         </div>
         
         <!-- สไลด์โปรโมชั่น -->
-        <div class="flex-1 relative rounded-lg overflow-hidden shadow-sm aspect-[16/7] md:aspect-[21/9] bg-gray-100 group">
+        <div class="flex-1 relative rounded-lg overflow-hidden shadow-sm aspect-[4/3] md:aspect-[21/9] bg-gray-100 group">
             <div id="promo-slider" class="w-full h-full flex transition-transform duration-500 ease-out"></div>
             <!-- ปุ่มเปลี่ยนสไลด์ -->
             <button onclick="if(typeof prevPromoSlide === 'function') prevPromoSlide()" class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-white/80 hover:bg-white text-black rounded-full flex items-center justify-center shadow-md backdrop-blur-sm transition opacity-0 group-hover:opacity-100 z-10">
