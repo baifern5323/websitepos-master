@@ -27,10 +27,11 @@
                     
                     <!-- โลโก้ (ชิดซ้าย) -->
                     <div class="flex items-center gap-2 md:gap-3 cursor-pointer shrink-0" onclick="if(typeof clearSearchAndGoHome === 'function') clearSearchAndGoHome()">
-                        <!-- โลโก้รูปภาพ (เอา hidden ออก) -->
-                        <img id="header-company-logo" src="https://placehold.co/150x150/7fad39/ffffff?text=LOGO" alt="Shop Logo" class="h-9 sm:h-10 md:h-14 lg:h-16 w-auto object-contain rounded-lg shadow-sm border border-gray-100">
-                        <!-- โลโก้ตัวหนังสือ (โชว์บนมือถือด้วย โดยปรับขนาดเริ่มต้นเป็น text-xl) -->
-                        <h1 id="header-company-name" class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tighter text-black uppercase hover:text-[#7fad39] transition-colors">SabuyShop</h1>
+                        <!-- 🌟 โลโก้รูปภาพ (เอาคลาส hidden ออกไปเลย เพื่อให้มันพร้อมโชว์) -->
+                        <img id="header-company-logo" src="https://placehold.co/150x150/7fad39/ffffff?text=LOGO" alt="Shop Logo" class="h-9 sm:h-10 md:h-14 lg:h-16 w-auto object-contain rounded-lg shadow-sm border border-gray-100" onerror="this.style.display='none'">
+                        
+                        <!-- 🌟 โลโก้ตัวหนังสือ (โชว์คู่กับรูปเสมอ ทั้งบนมือถือและคอมพิวเตอร์) -->
+                        <h1 id="header-company-name" class="text-2xl md:text-3xl lg:text-4xl font-black tracking-tighter text-black uppercase hover:text-[#7fad39] transition-colors">SabuyShop</h1>
                     </div>
                     
                     <!-- เส้นคั่น (เฉพาะจอคอม) -->
