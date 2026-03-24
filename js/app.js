@@ -146,9 +146,11 @@ async function fetchProductsFromCloud() {
             promotions = promoData;
         }
 
+        // 🌟 4.4 ดึงข้อมูลบริษัทและจัดการโลโก้ (แก้ปัญหาดึงข้อมูลผิดแถว)
         const { data: companyData, error: companyError } = await supabaseClient
             .from('company_profile')
             .select('*')
+            .order('updated_at', { ascending: false }) // 🌟 บังคับดึงแถวที่อัปเดตล่าสุดเสมอ ป้องกันการดึงแถวว่าง
             .limit(1);
             
         if (!companyError && companyData && companyData.length > 0) {
@@ -156,8 +158,8 @@ async function fetchProductsFromCloud() {
             
             const headerName = document.getElementById('header-company-name');
             const footerName = document.getElementById('footer-company-name');
-            if (headerName) headerName.innerText = company.name;
-            if (footerName) footerName.innerText = company.name;
+            if (headerName) headerName.innerText = company.name || 'SabuyShop';
+            if (footerName) footerName.innerText = company.name || 'SabuyShop';
             
             const headerPhone = document.getElementById('header-company-phone');
             const footerPhone = document.getElementById('footer-company-phone');
@@ -168,6 +170,19 @@ async function fetchProductsFromCloud() {
             if (footerAddress && company.address && company.address.trim() !== '') {
                 footerAddress.innerText = company.address;
                 footerAddress.classList.remove('hidden'); 
+            }
+            
+            // 🌟 บังคับแสดงโลโก้ ถ้าระบบพบ URL ในฐานข้อมูล
+            const headerLogo = document.getElementById('header-company-logo');
+            if (headerLogo) {
+                if (company.logo_url && company.logo_url.trim() !== '') {
+                    headerLogo.src = company.logo_url;
+                    headerLogo.classList.remove('hidden'); 
+                    headerLogo.style.display = 'block'; // สั่งบังคับโชว์
+                } else {
+                    headerLogo.classList.add('hidden');
+                    headerLogo.style.display = 'none'; // ซ่อนเฉพาะตอนไม่มี URL จริงๆ
+                }
             }
         }
 
