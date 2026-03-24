@@ -745,6 +745,16 @@ window.addEventListener('scroll', () => {
             homeBtn.classList.remove('flex');
         }
     }
+
+    // 🌟 ซ่อนเมนูมือถือเวลาเลื่อนหน้าจอลง และแสดงเมื่ออยู่บนสุด
+    const mobileNav = document.getElementById('mobile-nav-menu');
+    if (mobileNav) {
+        if (window.scrollY > 50) {
+            mobileNav.style.display = 'none'; // ซ่อนเมนูตอนเลื่อนลง
+        } else {
+            mobileNav.style.display = ''; // 🌟 แก้ไข: ล้างค่า display ทิ้ง เพื่อไม่ให้มันไปบังคับโชว์บนจอคอมพิวเตอร์
+        }
+    }
 });
 
 // 🌟 9. ดักจับการย่อ-ขยายหน้าจอ (Resize Event) 
