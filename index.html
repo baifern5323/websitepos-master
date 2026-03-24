@@ -27,10 +27,10 @@
                     
                     <!-- โลโก้ (ชิดซ้าย) -->
                     <div class="flex items-center gap-2 md:gap-3 cursor-pointer shrink-0" onclick="if(typeof clearSearchAndGoHome === 'function') clearSearchAndGoHome()">
-                        <!-- โลโก้รูปภาพ -->
-                        <img id="header-company-logo" src="https://placehold.co/150x150/7fad39/ffffff?text=LOGO" alt="Shop Logo" class="h-9 sm:h-10 md:h-14 lg:h-16 w-auto object-contain rounded-lg hidden shadow-sm border border-gray-100">
-                        <!-- โลโก้ตัวหนังสือ -->
-                        <h1 id="header-company-name" class="hidden sm:block text-2xl md:text-3xl lg:text-4xl font-black tracking-tighter text-black uppercase hover:text-[#7fad39] transition-colors">SabuyShop</h1>
+                        <!-- โลโก้รูปภาพ (เอา hidden ออก) -->
+                        <img id="header-company-logo" src="https://placehold.co/150x150/7fad39/ffffff?text=LOGO" alt="Shop Logo" class="h-9 sm:h-10 md:h-14 lg:h-16 w-auto object-contain rounded-lg shadow-sm border border-gray-100">
+                        <!-- โลโก้ตัวหนังสือ (โชว์บนมือถือด้วย โดยปรับขนาดเริ่มต้นเป็น text-xl) -->
+                        <h1 id="header-company-name" class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tighter text-black uppercase hover:text-[#7fad39] transition-colors">SabuyShop</h1>
                     </div>
                     
                     <!-- เส้นคั่น (เฉพาะจอคอม) -->
@@ -39,17 +39,17 @@
                     <!-- กลุ่มเบอร์โทร + ล็อกอิน (ชิดขวาบนมือถือ) -->
                     <div class="flex items-center gap-2 sm:gap-4 ml-auto md:ml-0">
                         <!-- เบอร์โทรช่วยเหลือ -->
-                        <div class="flex items-center gap-1.5 md:gap-3">
-                            <div class="w-7 h-7 md:w-10 md:h-10 rounded-full bg-green-50 flex items-center justify-center text-[#7fad39] shrink-0">
-                                <i class="fa-solid fa-phone text-[10px] md:text-lg"></i>
+                        <div class="flex items-center gap-2 md:gap-3">
+                            <div class="w-8 h-8 md:w-11 md:h-11 rounded-full bg-green-50 flex items-center justify-center text-[#7fad39] shrink-0">
+                                <i class="fa-solid fa-phone text-xs md:text-xl"></i>
                             </div>
                             <div class="flex flex-col justify-center">
-                                <div id="header-company-phone" class="font-black text-[11px] md:text-sm text-black leading-none mb-0.5 md:mb-1">02-123-4567</div>
-                                <div class="text-[9px] md:text-[10px] text-gray-500 leading-none">บริการ 24 ชม.</div>
+                                <div id="header-company-phone" class="font-black text-sm md:text-lg text-black leading-none mb-1">02-123-4567</div>
+                                <div class="text-xs md:text-sm text-gray-500 leading-none">บริการ 24 ชม.</div>
                             </div>
                         </div>
 
-                        <!-- ปุ่มล็อกอิน (แสดงเฉพาะมือถือ ปรับเป็นวงกลมตามภาพ) -->
+                        <!-- ปุ่มล็อกอิน (แสดงเฉพาะมือถือ) -->
                         <div class="md:hidden flex items-center shrink-0 ml-1">
                             <button class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[#7fad39] bg-white rounded-full border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors">
                                 <i class="fa-solid fa-user text-xs"></i>
@@ -60,7 +60,7 @@
 
                 <!-- 2. กลาง: แถบค้นหา + ปุ่มย้อนกลับ -->
                 <div class="flex items-center gap-2 w-full md:flex-1 md:max-w-md lg:max-w-xl md:mx-6 order-3 md:order-2 mt-1 md:mt-0">
-                    <!-- ปุ่มย้อนกลับ (แสดงเฉพาะมือถือ ปรับขอบเทาพื้นขาวตามภาพ) -->
+                    <!-- ปุ่มย้อนกลับ -->
                     <button onclick="if(typeof clearSearchAndGoHome === 'function') clearSearchAndGoHome()" class="md:hidden w-10 h-10 shrink-0 rounded-full bg-white text-gray-600 hover:text-[#7fad39] flex items-center justify-center transition-colors shadow-sm border border-gray-200" title="กลับหน้าแรก">
                         <i class="fa-solid fa-arrow-left text-sm"></i>
                     </button>
@@ -91,7 +91,7 @@
 
             </div>
 
-            <!-- 🌟 บรรทัดที่ 2 (มือถือ): เมนูนำทาง (ซ่อนตัวเวลาเลื่อนลงด้วย JS เดิม) -->
+            <!-- 🌟 บรรทัดที่ 2 (มือถือ): เมนูนำทาง -->
             <nav id="mobile-nav-menu" class="flex md:hidden justify-between items-center w-full pt-3 mt-3 border-t border-gray-100 text-[11px] sm:text-xs font-bold tracking-widest text-gray-500 uppercase transition-all duration-300">
                 <a href="#" onclick="if(typeof goHomeAndScrollTop === 'function') { goHomeAndScrollTop(); return false; }" class="text-[#7fad39]">HOME</a>
                 <a href="#shop-section" onclick="if(typeof setActiveCategory === 'function') setActiveCategory('All')" class="hover:text-[#7fad39] transition">SHOP</a>
@@ -119,9 +119,10 @@
         
         <!-- เมนูหมวดหมู่ด้านซ้าย (กดเปิด/ปิดได้) -->
         <div class="w-full md:w-64 shrink-0 relative z-40">
-            <div class="bg-[#7fad39] text-white px-4 py-3 md:px-6 md:py-4 font-bold flex justify-between items-center cursor-pointer rounded-t-lg shadow-sm" onclick="if(typeof toggleCategories === 'function') toggleCategories()">
-                <div class="flex items-center gap-2"><i class="fa-solid fa-bars"></i> หมวดหมู่ทั้งหมด</div>
-                <i class="fa-solid fa-chevron-down text-sm transition-transform duration-300" id="category-chevron"></i>
+            <!-- 🌟 ปรับขนาดฟอนต์หัวข้อหมวดหมู่ให้ใหญ่ขึ้น (text-xl md:text-2xl) -->
+            <div class="bg-[#7fad39] text-white px-4 py-3 md:px-6 md:py-4 font-bold text-xl md:text-2xl flex justify-between items-center cursor-pointer rounded-t-lg shadow-sm" onclick="if(typeof toggleCategories === 'function') toggleCategories()">
+                <div class="flex items-center gap-2 md:gap-3"><i class="fa-solid fa-bars text-2xl md:text-3xl"></i> หมวดหมู่ทั้งหมด</div>
+                <i class="fa-solid fa-chevron-down text-lg md:text-xl transition-transform duration-300" id="category-chevron"></i>
             </div>
             <!-- เมนูย่อย -->
             <ul id="sidebar-categories" class="hidden md:block absolute md:relative w-full bg-white border border-t-0 border-gray-200 rounded-b-lg shadow-lg md:shadow-sm overflow-hidden max-h-[60vh] overflow-y-auto z-40 origin-top transition-all duration-300 hide-scrollbar">
