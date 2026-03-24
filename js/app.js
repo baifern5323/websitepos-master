@@ -136,6 +136,7 @@ async function fetchProductsFromCloud() {
                 .sort((a, b) => a.name.localeCompare(b.name, 'th'));
         }
 
+        // 🌟 4.3 ดึงรูปโปรโมชั่น
         const { data: promoData, error: promoError } = await supabaseClient
             .from('promotions')
             .select('*')
@@ -146,6 +147,7 @@ async function fetchProductsFromCloud() {
             promotions = promoData;
         }
 
+        // 🌟 4.4 ดึงข้อมูลบริษัทและจัดการโลโก้ (มีเฉพาะโลโก้ ไม่มีเวลาอัปเดต)
         const { data: companyData, error: companyError } = await supabaseClient
             .from('company_profile')
             .select('*')
@@ -168,6 +170,18 @@ async function fetchProductsFromCloud() {
             if (footerAddress && company.address && company.address.trim() !== '') {
                 footerAddress.innerText = company.address;
                 footerAddress.classList.remove('hidden'); 
+            }
+            
+            // 🌟 ส่วนจัดการรูปภาพโลโก้ร้านค้า
+            const headerLogo = document.getElementById('header-company-logo');
+            if (headerLogo) {
+                if (company.logo_url) {
+                    headerLogo.src = company.logo_url;
+                    headerLogo.classList.remove('hidden'); 
+                } else {
+                    // ถ้าไม่มีโลโก้ ให้ซ่อนรูป แล้วโชว์แค่ชื่อร้านตัวหนังสือ
+                    headerLogo.classList.add('hidden');
+                }
             }
         }
 
@@ -735,24 +749,13 @@ window.goHomeAndScrollTop = function() {
 }
 
 window.addEventListener('scroll', () => {
-    const homeBtn = document.getElementById('floating-home-btn');
-    if (homeBtn) {
-        if (window.scrollY > 200) {
-            homeBtn.classList.remove('hidden');
-            homeBtn.classList.add('flex');
-        } else {
-            homeBtn.classList.add('hidden');
-            homeBtn.classList.remove('flex');
-        }
-    }
-
     // 🌟 ซ่อนเมนูมือถือเวลาเลื่อนหน้าจอลง และแสดงเมื่ออยู่บนสุด
     const mobileNav = document.getElementById('mobile-nav-menu');
     if (mobileNav) {
         if (window.scrollY > 50) {
             mobileNav.style.display = 'none'; // ซ่อนเมนูตอนเลื่อนลง
         } else {
-            mobileNav.style.display = ''; // 🌟 แก้ไข: ล้างค่า display ทิ้ง เพื่อไม่ให้มันไปบังคับโชว์บนจอคอมพิวเตอร์
+            mobileNav.style.display = ''; // 🌟 ล้างค่า display ทิ้ง เพื่อไม่ให้มันไปบังคับโชว์บนจอคอมพิวเตอร์
         }
     }
 });
