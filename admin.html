@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Admin Login - ระบบจัดการร้านค้า</title>
+
+    <!-- ดึงเครื่องมือจากภายนอก -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- นำเข้า Supabase Auth -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- นำเข้าไฟล์ CSS ของเรา -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+
+    <!-- 🌟 กล่อง Login -->
+    <div
+        class="bg-white p-8 md:p-10 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 relative overflow-hidden">
+
+        <!-- แถบตกแต่งด้านบนกล่อง -->
+        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#7fad39] to-[#a0d655]"></div>
+
+        <div class="text-center mb-8 mt-2 flex flex-col items-center">
+            <!-- 🌟 โลโก้ (จะสลับโชว์ระหว่างไอคอน กับ รูปภาพจากฐานข้อมูล) -->
+            <div id="admin-logo-container" class="h-16 flex items-center justify-center mb-4">
+                <div id="admin-logo-icon"
+                    class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-[#7fad39]">
+                    <i class="fa-solid fa-shield-halved text-3xl"></i>
+                </div>
+                <img id="admin-logo-image" src="" alt="Shop Logo" class="h-full w-auto object-contain hidden">
+            </div>
+
+            <!-- 🌟 ชื่อร้าน (จะถูกเปลี่ยนตามข้อมูลใน Company) -->
+            <h1 id="admin-shop-name" class="text-3xl font-black text-black uppercase tracking-tighter">SabuyShop</h1>
+            <p class="text-gray-500 mt-2 font-medium">ระบบจัดการร้านค้า (Admin Panel)</p>
+        </div>
+
+        <!-- ฟอร์มเข้าสู่ระบบ -->
+        <form id="login-form" class="space-y-5">
+
+            <!-- กล่องแจ้งเตือน Error -->
+            <div id="error-message"
+                class="hidden bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm text-center font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="error-text">อีเมลหรือรหัสผ่านไม่ถูกต้อง</span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">อีเมลผู้ดูแลระบบ</label>
+                <div class="relative">
+                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="email" id="admin-email"
+                        class="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#7fad39] focus:ring-1 focus:ring-[#7fad39] focus:bg-white transition-all text-sm"
+                        placeholder="admin@shop.com" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">รหัสผ่าน</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="password" id="admin-password"
+                        class="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#7fad39] focus:ring-1 focus:ring-[#7fad39] focus:bg-white transition-all text-sm"
+                        placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" id="login-btn"
+                class="w-full bg-[#7fad39] hover:bg-[#6c9331] text-white font-bold py-3.5 rounded-xl transition-all flex justify-center items-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 mt-2">
+                <span>เข้าสู่ระบบจัดการ</span>
+                <i id="login-spinner" class="fa-solid fa-circle-notch fa-spin hidden"></i>
+            </button>
+        </form>
+
+        <div class="mt-8 text-center text-sm">
+            <a href="index.html"
+                class="text-gray-400 hover:text-[#7fad39] font-medium transition-colors flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-arrow-left"></i> กลับไปยังหน้าร้านค้า
+            </a>
+        </div>
+    </div>
+
+    <!-- ================= 🌟 สคริปต์ระบบ ================= -->
+    <script>
+        // 1. ตั้งค่า Supabase
+        const SUPABASE_URL = 'https://xpetiobkllituiewqkos.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_vZKcLK-PW_SVleLuJMmnjw_3ApwNLOf';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 🌟 2. ฟังก์ชันดึงข้อมูลชื่อร้านและโลโก้จากตาราง company_profile
+        async function loadCompanyProfile() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('company_profile')
+                    .select('name, logo_url')
+                    .order('updated_at', { ascending: false })
+                    .limit(1);
+
+                if (data && data.length > 0) {
+                    const company = data[0];
+                    const shopName = company.name || 'SabuyShop';
+
+                    // เปลี่ยนชื่อร้านและ Title แถบด้านบน
+                    document.getElementById('admin-shop-name').innerText = shopName;
+                    document.getElementById('page-title').innerText = `Admin Login - ${shopName}`;
+
+                    // แสดงโลโก้ถ้ามี URL
+                    if (company.logo_url && company.logo_url.trim() !== '') {
+                        const logoImg = document.getElementById('admin-logo-image');
+                        const logoIcon = document.getElementById('admin-logo-icon');
+
+                        logoImg.src = company.logo_url;
+                        logoImg.classList.remove('hidden'); // โชว์รูป
+                        logoIcon.classList.add('hidden'); // ซ่อนไอคอนโล่
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading company profile:", err);
+            }
+        }
+
+        // เรียกใช้งานทันทีเมื่อเปิดหน้า
+        loadCompanyProfile();
+
+        // 3. ตรวจสอบว่าแอดมินล็อกอินค้างไว้หรือเปล่า?
+        async function checkCurrentSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                window.location.href = 'admin_dashboard.html';
+            }
+        }
+        checkCurrentSession();
+
+        // 4. จัดการตอนกดปุ่มล็อกอิน
+        const loginForm = document.getElementById('login-form');
+        const emailInput = document.getElementById('admin-email');
+        const passwordInput = document.getElementById('admin-password');
+        const loginBtn = document.getElementById('login-btn');
+        const loginSpinner = document.getElementById('login-spinner');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // ซ่อนแจ้งเตือน และเปิดตัวหมุนโหลด
+            errorMessage.classList.add('hidden');
+            loginBtn.disabled = true;
+            loginBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            loginSpinner.classList.remove('hidden');
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            try {
+                // ส่งคำขอเข้าสู่ระบบไปยัง Supabase
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) throw error;
+
+                // ล็อกอินสำเร็จ! พาไปหน้าจัดการ (Dashboard)
+                window.location.href = 'admin_dashboard.html';
+
+            } catch (err) {
+                console.error("Login Error:", err.message);
+                if (err.message === 'Invalid login credentials') {
+                    errorText.innerText = "อีเมล หรือ รหัสผ่านไม่ถูกต้อง!";
+                } else {
+                    errorText.innerText = "เกิดข้อผิดพลาด: " + err.message;
+                }
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                loginSpinner.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>

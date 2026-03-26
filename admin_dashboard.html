@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ระบบจัดการร้านค้า</title>
+
+    <!-- ดึงเครื่องมือจากภายนอก -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- นำเข้า Supabase Auth & Database -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- นำเข้าไฟล์ CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .menu-active {
+            background-color: #f0fdf4;
+            color: #7fad39;
+            font-weight: bold;
+        }
+
+        .menu-inactive {
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .menu-inactive:hover {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 flex h-screen overflow-hidden font-sans text-slate-800">
+
+    <!-- 🌟 Loading Overlay -->
+    <div id="page-loader" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7fad39] mb-4"></div>
+        <p class="text-slate-500 font-medium">กำลังตรวจสอบสิทธิ์...</p>
+    </div>
+
+    <!-- ================= 🌟 SIDEBAR (เมนูด้านซ้าย) ================= -->
+    <aside class="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col z-20">
+        <div class="h-16 flex items-center px-6 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center text-[#7fad39]">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <span id="sidebar-shop-name" class="font-black text-xl uppercase tracking-tighter">Admin Panel</span>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <button onclick="switchView('dashboard')" id="menu-dashboard"
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors menu-active">
+                <i class="fa-solid fa-chart-pie w-5 text-center"></i> แดชบอร์ด
+            </button>
+            <button onclick="switchView('products')" id="menu-products"
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors menu-inactive">
+                <i class="fa-solid fa-box w-5 text-center"></i> สินค้าทั้งหมด
+            </button>
+            <button onclick="switchView('promotions')" id="menu-promotions"
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors menu-inactive">
+                <i class="fa-solid fa-image w-5 text-center"></i> โปรโมชั่นแบนเนอร์
+            </button>
+            <button onclick="switchView('settings')" id="menu-settings"
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors menu-inactive">
+                <i class="fa-solid fa-gear w-5 text-center"></i> ตั้งค่าระบบ
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-100">
+            <button onclick="logout()"
+                class="flex items-center gap-3 px-3 py-2.5 w-full text-left text-rose-500 hover:bg-rose-50 rounded-lg font-medium transition-colors">
+                <i class="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i> ออกจากระบบ
+            </button>
+        </div>
+    </aside>
+
+    <!-- ================= 🌟 MAIN CONTENT ================= -->
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+
+        <!-- Topbar -->
+        <header
+            class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 shrink-0 z-10">
+            <div class="flex items-center gap-4">
+                <button class="md:hidden text-slate-500 hover:text-slate-700">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h1 id="topbar-title" class="text-xl font-bold text-slate-800">ภาพรวมระบบ (Overview)</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div
+                    class="flex items-center gap-2 text-xs md:text-sm font-medium text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="hidden sm:block">เชื่อมต่อฐานข้อมูล: </span>
+                    <span class="text-[#7fad39] font-bold">Online</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/50 relative">
+
+            <!-- 🟢 VIEW 1: DASHBOARD -->
+            <div id="view-dashboard" class="view-section block">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+                    <div
+                        class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                        <div
+                            class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
+                            <i class="fa-solid fa-box-open text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">สินค้าทั้งหมด</p>
+                            <h3 class="text-2xl font-black text-slate-800" id="stat-products">-</h3>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-white rounded-2xl p-6 border border-red-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow relative overflow-hidden">
+                        <div class="absolute right-0 top-0 w-16 h-16 bg-red-50 rounded-bl-full -z-0"></div>
+                        <div
+                            class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 shrink-0 relative z-10">
+                            <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <p class="text-xs font-bold text-red-400 uppercase tracking-wider mb-1">สินค้าใกล้หมด</p>
+                            <h3 class="text-2xl font-black text-red-600" id="stat-low-stock">-</h3>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                        <div
+                            class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shrink-0">
+                            <i class="fa-solid fa-images text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">แบนเนอร์</p>
+                            <h3 class="text-2xl font-black text-slate-800" id="stat-promos">-</h3>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                        <div
+                            class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-[#7fad39] shrink-0">
+                            <i class="fa-solid fa-clock-rotate-left text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">อัปเดตล่าสุด</p>
+                            <h3 class="text-sm font-bold text-slate-800 leading-tight mt-1" id="stat-last-sync">
+                                กำลังโหลด...</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ตารางสินค้าล่าสุดแบบมีช่องค้นหา -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col mb-8">
+                    <div
+                        class="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-clock text-slate-400"></i> สินค้าที่มีการอัปเดตล่าสุด
+                        </h2>
+
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                            <div class="relative flex-1 md:w-64">
+                                <input type="text" id="dashboard-search" placeholder="ค้นหาชื่อสินค้า หรือ PN..."
+                                    class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7fad39]/20 focus:border-[#7fad39] transition-all text-sm">
+                                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                                </div>
+                            </div>
+                            <button onclick="handleDashboardSearch()"
+                                class="bg-[#7fad39] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#6d9631] transition-colors shadow-sm shrink-0">
+                                ค้นหา
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="overflow-x-auto flex-1 overflow-y-auto relative hide-scrollbar min-h-[300px] max-h-[600px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm shadow-sm">
+                                <tr class="text-slate-500 text-xs uppercase tracking-wider">
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100">รหัสสินค้า (PN)</th>
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100 min-w-[200px]">ชื่อสินค้า
+                                    </th>
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100">ราคาขาย</th>
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100">สต็อกคงเหลือ</th>
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100 text-right">สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-product-table" class="divide-y divide-slate-100 text-sm">
+                                <tr>
+                                    <td colspan="5" class="px-6 py-12 text-center text-slate-400"><i
+                                            class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-[#7fad39]"></i>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🟢 VIEW 2: ALL PRODUCTS -->
+            <div id="view-products" class="view-section hidden flex flex-col h-full min-h-[600px]">
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col h-full">
+                    <div
+                        class="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0 bg-white rounded-t-2xl">
+                        <div class="relative w-full sm:w-96">
+                            <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="product-search" placeholder="ค้นหาชื่อ หรือ รหัส..."
+                                class="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7fad39]/50 text-sm">
+                        </div>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <button onclick="clearSearch()"
+                                class="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200">ล้าง</button>
+                            <button onclick="loadAllProducts(1)"
+                                class="bg-[#7fad39] hover:bg-[#6c9331] text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center justify-center gap-2"><i
+                                    class="fa-solid fa-magnifying-glass"></i> ค้นหา</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto flex-1 overflow-y-auto relative hide-scrollbar min-h-[400px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm shadow-sm">
+                                <tr class="text-slate-500 text-xs uppercase tracking-wider">
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100 w-16">รูป</th>
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100">PN</th>
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100 min-w-[200px]">ชื่อสินค้า
+                                    </th>
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100">หมวดหมู่</th>
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100">ราคาขาย</th>
+                                    <th class="px-6 py-4 font-bold border-b border-slate-100 text-right">สต็อก</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-product-table" class="divide-y divide-slate-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div
+                        class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-4 shrink-0 rounded-b-2xl">
+                        <span class="text-sm font-medium text-slate-500" id="product-pagination-info"></span>
+                        <div class="flex gap-1.5" id="product-pagination-buttons"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🟢 VIEW 3: PROMOTIONS -->
+            <div id="view-promotions" class="view-section hidden">
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800">แบนเนอร์หน้าเว็บ</h2>
+                        </div>
+                        <button onclick="loadPromotions()"
+                            class="bg-slate-50 text-[#7fad39] border border-slate-200 px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#7fad39] hover:text-white transition-colors"><i
+                                class="fa-solid fa-rotate-right"></i></button>
+                    </div>
+                    <div id="promotions-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+            </div>
+
+            <!-- 🟢 VIEW 4: SETTINGS (ตั้งค่าระบบ) -->
+            <div id="view-settings" class="view-section hidden">
+
+                <!-- 🌟 กล่องที่ 1: ตั้งค่าการจัดส่งแบบหลายเรท (Multiple Tiers) -->
+                <div class="max-w-2xl bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-green-50 flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-[#7fad39]"><i class="fa-solid fa-truck-fast mr-2"></i>
+                            ตั้งค่าเรทค่าจัดส่ง</h2>
+                        <button onclick="addTier()"
+                            class="bg-white border border-[#7fad39] text-[#7fad39] hover:bg-[#7fad39] hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm">
+                            <i class="fa-solid fa-plus"></i> เพิ่มเงื่อนไข
+                        </button>
+                    </div>
+                    <div class="p-6 bg-slate-50/50">
+                        <div
+                            class="mb-4 text-sm text-slate-500 bg-blue-50 p-3 rounded-lg border border-blue-100 leading-relaxed">
+                            <i class="fa-solid fa-info-circle text-blue-500"></i>
+                            ระบบจะคิดค่าจัดส่งตามยอดสั่งซื้อที่ตกอยู่ในช่วงนั้นๆ หากยอดถึงที่กำหนด
+                            จะใช้ค่าส่งของเรทที่แพงที่สุดที่เข้าเงื่อนไข <b>(แนะนำให้ใส่ค่าส่ง 0 บาท
+                                ไว้ที่เรทสูงสุดเพื่อทำโปรส่งฟรี)</b>
+                        </div>
+
+                        <div id="shipping-tiers-container" class="space-y-3 mb-6">
+                            <!-- JS จะวาดกล่องอินพุตตรงนี้ -->
+                        </div>
+
+                        <button onclick="saveShippingSettings()" id="btn-save-shipping"
+                            class="w-full bg-[#7fad39] hover:bg-[#6c9331] text-white px-6 py-3.5 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-save"></i> บันทึกเรทค่าจัดส่ง
+                        </button>
+                        <p id="shipping-save-msg" class="text-sm font-bold text-green-600 mt-3 text-center hidden"><i
+                                class="fa-solid fa-check-circle"></i> บันทึกข้อมูลสำเร็จ!</p>
+                    </div>
+                </div>
+
+                <!-- กล่องที่ 2: ข้อมูลบริษัท -->
+                <div class="max-w-2xl bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50">
+                        <h2 class="text-lg font-bold text-slate-800"><i
+                                class="fa-solid fa-store mr-2 text-[#7fad39]"></i> ข้อมูลร้านค้า</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center gap-6 pb-6 border-b border-slate-100">
+                            <div
+                                class="w-24 h-24 bg-gray-100 rounded-xl flex items-center justify-center shadow-inner overflow-hidden">
+                                <img id="setting-logo" src="" class="w-full h-full object-contain hidden">
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-black text-slate-800" id="setting-name">SabuyShop</h3>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-6 mt-6">
+                            <div><label class="text-xs font-bold text-slate-500 uppercase">เบอร์โทรศัพท์</label>
+                                <div class="py-2 font-medium" id="setting-phone">-</div>
+                            </div>
+                            <div class="col-span-2"><label
+                                    class="text-xs font-bold text-slate-500 uppercase">ที่อยู่</label>
+                                <div class="py-2 font-medium" id="setting-address">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🌟 กล่องที่ 3: ตั้งค่าช่องทางการติดต่อ (LINE & Email) -->
+                <div class="max-w-2xl bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-8">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-blue-50 flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-blue-700"><i class="fa-solid fa-address-book mr-2"></i>
+                            ตั้งค่าช่องทางการติดต่อ</h2>
+                    </div>
+                    <div class="p-6 bg-slate-50/50">
+                        <div class="space-y-5 mb-6">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">อีเมล (E-mail)</label>
+                                <div class="relative">
+                                    <input type="email" id="setting-email"
+                                        class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+                                        placeholder="เช่น contact@sabuyshop.com">
+                                    <i
+                                        class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">LINE OA ID
+                                    (สำหรับรับออเดอร์)</label>
+                                <div class="relative">
+                                    <input type="text" id="setting-line-id"
+                                        class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+                                        placeholder="เช่น @sabuyshop">
+                                    <i
+                                        class="fa-brands fa-line absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-2">ใส่ @ ด้วย เพื่อให้คำสั่งซื้อเด้งเข้าแชทนี้</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">ลิงก์สำหรับเพิ่มเพื่อน LINE
+                                    (URL)</label>
+                                <div class="relative">
+                                    <input type="url" id="setting-line-url"
+                                        class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+                                        placeholder="เช่น https://lin.ee/xxxxx">
+                                    <i
+                                        class="fa-solid fa-link absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">ลิงก์รูปภาพ QR Code
+                                    (ให้ลูกค้าสแกน)</label>
+                                <div class="relative">
+                                    <input type="url" id="setting-line-qr"
+                                        class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+                                        placeholder="https://...">
+                                    <i
+                                        class="fa-solid fa-qrcode absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="saveContactSettings()" id="btn-save-contact"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-save"></i> บันทึกข้อมูลติดต่อ
+                        </button>
+                        <p id="contact-save-msg" class="text-sm font-bold text-green-600 mt-3 text-center hidden"><i
+                                class="fa-solid fa-check-circle"></i> บันทึกข้อมูลสำเร็จ!</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ================= 🌟 สคริปต์ระบบการทำงาน ================= -->
+    <script>
+        const SUPABASE_URL = 'https://xpetiobkllituiewqkos.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_vZKcLK-PW_SVleLuJMmnjw_3ApwNLOf';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentProductPage = 1;
+        const productsPerPage = 50;
+        let totalProductCount = 0;
+        let currentCompanyId = null;
+
+        // 🌟 ตัวแปรเก็บข้อมูลเรทค่าจัดส่ง
+        let shippingTiers = [];
+
+        function switchView(viewName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('block'));
+            document.querySelectorAll('aside nav button').forEach(el => { el.classList.remove('menu-active'); el.classList.add('menu-inactive'); });
+
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            document.getElementById(`view-${viewName}`).classList.add('block');
+            document.getElementById(`menu-${viewName}`).classList.add('menu-active');
+            document.getElementById(`menu-${viewName}`).classList.remove('menu-inactive');
+
+            if (viewName === 'products' && document.getElementById('all-product-table').innerHTML.trim() === '') loadAllProducts(1);
+            if (viewName === 'promotions') loadPromotions();
+            if (viewName === 'settings') loadSettings();
+        }
+
+        function redirectToLogin() {
+            try {
+                const isSandbox = window.location.protocol.includes('blob') || window.location.protocol.includes('data') || window.location.hostname === 'null' || window.self !== window.top;
+                if (isSandbox) {
+                    document.body.innerHTML = `
+                        <div class="flex items-center justify-center h-screen w-full bg-slate-50">
+                            <div class="text-center p-8 bg-white rounded-2xl shadow-sm border border-slate-200 max-w-sm">
+                                <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="fa-solid fa-lock text-3xl"></i>
+                                </div>
+                                <h2 class="text-2xl font-bold text-slate-800 mb-2">สงวนสิทธิ์การเข้าถึง</h2>
+                                <p class="text-slate-500 mb-6 text-sm">เนื่องจากอยู่ในโหมดทดสอบหรือยังไม่ได้เข้าสู่ระบบ กรุณาไปที่หน้า <b>admin.html</b> เพื่อล็อกอิน</p>
+                            </div>
+                        </div>`;
+                } else {
+                    window.location.href = 'admin.html';
+                }
+            } catch (e) {
+                console.error('Redirect Error:', e);
+            }
+        }
+
+        async function checkAuth() {
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                if (error || !session) { redirectToLogin(); return; }
+                document.getElementById('page-loader').style.display = 'none';
+                loadDashboardData();
+            } catch (err) { redirectToLogin(); }
+        }
+
+        async function logout() {
+            if (confirm("ออกจากระบบ?")) { await supabaseClient.auth.signOut(); redirectToLogin(); }
+        }
+
+        // ==========================================
+        // 🌟 โหลดข้อมูลหน้า Dashboard
+        // ==========================================
+        async function loadDashboardData(searchQuery = '') {
+            try {
+                if (!searchQuery) {
+                    const { data: companyData } = await supabaseClient.from('company_profile').select('*').order('updated_at', { ascending: false }).limit(1);
+                    if (companyData && companyData.length > 0) {
+                        document.getElementById('sidebar-shop-name').innerText = companyData[0].name || 'Admin Panel';
+                        if (companyData[0].updated_at) {
+                            const date = new Date(companyData[0].updated_at);
+                            document.getElementById('stat-last-sync').innerText = date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) + ' ' + date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        }
+                    }
+
+                    const { count: productCount } = await supabaseClient.from('products').select('*', { count: 'exact', head: true });
+                    document.getElementById('stat-products').innerText = productCount ? productCount.toLocaleString() : "0";
+
+                    const { count: lowStockCount } = await supabaseClient.from('products').select('*', { count: 'exact', head: true }).lte('stock', 5);
+                    document.getElementById('stat-low-stock').innerText = lowStockCount ? lowStockCount.toLocaleString() : "0";
+
+                    const { count: promoCount } = await supabaseClient.from('promotions').select('*', { count: 'exact', head: true });
+                    document.getElementById('stat-promos').innerText = promoCount ? promoCount.toLocaleString() : "0";
+                }
+
+                let query = supabaseClient.from('products').select('*');
+                if (searchQuery) {
+                    query = query.or(`name.ilike.%${searchQuery}%,pn.ilike.%${searchQuery}%`);
+                }
+
+                const { data: recentProducts } = await query.order('updated_at', { ascending: false }).limit(50);
+                const tbody = document.getElementById('recent-product-table');
+
+                if (recentProducts && recentProducts.length > 0) {
+                    tbody.innerHTML = recentProducts.map(p => {
+                        const isOutOfStock = p.stock <= 0;
+                        const statusBadge = isOutOfStock
+                            ? '<span class="px-2.5 py-1 bg-red-50 text-red-600 border border-red-100 text-[11px] font-bold rounded-md">สินค้าหมด</span>'
+                            : '<span class="px-2.5 py-1 bg-green-50 text-green-600 border border-green-100 text-[11px] font-bold rounded-md">พร้อมขาย</span>';
+
+                        return `
+                        <tr class="hover:bg-slate-50 border-b border-slate-50 transition-colors">
+                            <td class="px-6 py-3 font-mono text-xs text-slate-400">${p.pn || '-'}</td>
+                            <td class="px-6 py-3 font-medium text-slate-800">${p.name || '-'}</td>
+                            <td class="px-6 py-3 text-slate-600">฿${Number(p.price1 || 0).toLocaleString()}</td>
+                            <td class="px-6 py-3 font-bold ${p.stock <= 5 ? 'text-red-500' : ''}">${p.stock || 0}</td>
+                            <td class="px-6 py-3 text-right">${statusBadge}</td>
+                        </tr>
+                        `;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">ไม่มีข้อมูลสินค้าที่ค้นหา</td></tr>`;
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function handleDashboardSearch() {
+            const query = document.getElementById('dashboard-search').value;
+            loadDashboardData(query);
+        }
+
+        const dashboardSearchInput = document.getElementById('dashboard-search');
+        if (dashboardSearchInput) {
+            dashboardSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleDashboardSearch();
+            });
+        }
+
+        // ==========================================
+        // 🌟 โหลดหน้าสินค้าทั้งหมด
+        // ==========================================
+        async function loadAllProducts(page = 1) {
+            currentProductPage = page;
+            const search = document.getElementById('product-search').value.trim();
+            const tbody = document.getElementById('all-product-table');
+            const info = document.getElementById('product-pagination-info');
+            const buttons = document.getElementById('product-pagination-buttons');
+
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>`;
+
+            try {
+                const from = (page - 1) * productsPerPage;
+                const to = from + productsPerPage - 1;
+                let query = supabaseClient.from('products').select('pn, name, price1, stock, image_url, product_groups(name)', { count: 'exact' });
+                if (search) query = query.or(`name.ilike.%${search}%,pn.ilike.%${search}%`);
+
+                const { data, count } = await query.order('name', { ascending: true }).range(from, to);
+                totalProductCount = count || 0;
+
+                if (data && data.length > 0) {
+                    tbody.innerHTML = data.map(p => `
+                        <tr class="border-b border-slate-50 hover:bg-slate-50">
+                            <td class="px-6 py-2"><img src="${p.image_url}" class="w-10 h-10 object-cover rounded bg-slate-100" onerror="this.style.display='none'"></td>
+                            <td class="px-6 py-3 font-mono text-xs text-slate-400">${p.pn}</td>
+                            <td class="px-6 py-3 font-medium">${p.name}</td>
+                            <td class="px-6 py-3 text-xs">${p.product_groups ? p.product_groups.name : '-'}</td>
+                            <td class="px-6 py-3">฿${p.price1}</td>
+                            <td class="px-6 py-3 font-bold text-right ${p.stock <= 5 ? 'text-red-500' : ''}">${p.stock}</td>
+                        </tr>
+                    `).join('');
+                } else { tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center">ไม่พบข้อมูล</td></tr>`; }
+
+                const totalPages = Math.ceil(totalProductCount / productsPerPage);
+                info.innerHTML = `${totalProductCount} รายการ (หน้า ${page}/${totalPages || 1})`;
+                buttons.innerHTML = `
+                    <button onclick="loadAllProducts(${Math.max(1, page - 1)})" ${page === 1 ? 'disabled' : ''} class="px-3 py-1 bg-white border rounded">ก่อนหน้า</button>
+                    <button onclick="loadAllProducts(${Math.min(totalPages, page + 1)})" ${page === totalPages || totalPages === 0 ? 'disabled' : ''} class="px-3 py-1 bg-white border rounded">ถัดไป</button>
+                `;
+            } catch (err) { console.error(err); }
+        }
+
+        function clearSearch() {
+            document.getElementById('product-search').value = '';
+            loadAllProducts(1);
+        }
+
+        document.getElementById('product-search').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') loadAllProducts(1);
+        });
+
+        // ==========================================
+        // 🌟 โหลดแบนเนอร์
+        // ==========================================
+        async function loadPromotions() {
+            const grid = document.getElementById('promotions-grid');
+            grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400"><i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-[#7fad39]"></i></div>`;
+            try {
+                const { data, error } = await supabaseClient.from('promotions').select('*').order('sort_order', { ascending: true });
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    grid.innerHTML = data.map((promo, index) => `
+                        <div class="bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                            <div class="aspect-[21/9] bg-slate-200 relative">
+                                <img src="${promo.image_url}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/800x400?text=Image+Error'">
+                                ${!promo.is_active ? '<div class="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[2px]"><span class="bg-red-500 text-white px-4 py-1.5 text-sm font-bold rounded-full shadow-lg">ซ่อนอยู่</span></div>' : ''}
+                            </div>
+                            <div class="p-4 text-xs text-slate-500 flex justify-between items-center bg-white border-t border-slate-100">
+                                <span class="font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-lg">ลำดับที่ ${promo.sort_order || index + 1}</span>
+                                <span class="font-mono text-[10px] text-slate-400">${promo.id}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500">ไม่มีรูปโปรโมชั่นในระบบ</div>`;
+                }
+            } catch (err) { grid.innerHTML = `<div class="col-span-full text-center text-red-500">โหลดโปรโมชั่นล้มเหลว</div>`; }
+        }
+
+        // ==========================================
+        // 🌟 ระบบตั้งค่าการจัดส่งและการติดต่อ
+        // ==========================================
+        function renderShippingTiers() {
+            const container = document.getElementById('shipping-tiers-container');
+            shippingTiers.sort((a, b) => a.min_amount - b.min_amount);
+
+            container.innerHTML = shippingTiers.map((tier, index) => `
+                <div class="flex items-end gap-3 bg-white p-4 border border-slate-200 rounded-xl shadow-sm relative group">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">ยอดสั่งซื้อตั้งแต่ (บาท)</label>
+                        <input type="number" value="${tier.min_amount}" onchange="updateTier(${index}, 'min_amount', this.value)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#7fad39] outline-none text-sm" ${index === 0 ? 'disabled title="เริ่มต้นที่ 0 บาทเสมอ"' : ''}>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">ค่าจัดส่ง (บาท)</label>
+                        <input type="number" value="${tier.fee}" onchange="updateTier(${index}, 'fee', this.value)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-[#7fad39] outline-none text-sm">
+                    </div>
+                    ${index > 0 ? `
+                    <button onclick="removeTier(${index})" class="w-10 h-[38px] flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    ` : '<div class="w-10 h-[38px] shrink-0 flex items-center justify-center text-xs text-slate-400 font-bold bg-slate-100 border border-slate-200 rounded-lg">Base</div>'}
+                </div>
+            `).join('');
+        }
+
+        window.addTier = function () {
+            let nextMin = 500;
+            if (shippingTiers.length > 0) {
+                nextMin = Math.max(...shippingTiers.map(t => t.min_amount)) + 500;
+            }
+            shippingTiers.push({ min_amount: nextMin, fee: 0 });
+            renderShippingTiers();
+        }
+
+        window.removeTier = function (index) {
+            if (index === 0) return;
+            shippingTiers.splice(index, 1);
+            renderShippingTiers();
+        }
+
+        window.updateTier = function (index, field, value) {
+            shippingTiers[index][field] = Number(value);
+        }
+
+        async function loadSettings() {
+            try {
+                const { data } = await supabaseClient.from('company_profile').select('*').order('updated_at', { ascending: false }).limit(1);
+                if (data && data.length > 0) {
+                    const c = data[0];
+                    currentCompanyId = c.id;
+                    document.getElementById('setting-name').innerText = c.name || '-';
+                    document.getElementById('setting-phone').innerText = c.phone || '-';
+                    document.getElementById('setting-address').innerText = c.address || '-';
+                    if (c.logo_url) {
+                        document.getElementById('setting-logo').src = c.logo_url;
+                        document.getElementById('setting-logo').classList.remove('hidden');
+                    }
+
+                    if (c.shipping_tiers) {
+                        let parsedTiers = typeof c.shipping_tiers === 'string' ? JSON.parse(c.shipping_tiers) : c.shipping_tiers;
+                        if (Array.isArray(parsedTiers) && parsedTiers.length > 0) {
+                            shippingTiers = parsedTiers;
+                        }
+                    } else {
+                        shippingTiers = [{ min_amount: 0, fee: 50 }, { min_amount: 500, fee: 0 }];
+                    }
+                    renderShippingTiers();
+
+                    // 🌟 โหลดข้อมูลติดต่ออีเมลและไลน์
+                    document.getElementById('setting-email').value = c.email || '';
+                    document.getElementById('setting-line-id').value = c.line_id || '';
+                    document.getElementById('setting-line-url').value = c.line_url || '';
+                    document.getElementById('setting-line-qr').value = c.line_qr_url || '';
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function saveShippingSettings() {
+            if (!currentCompanyId) return alert("ไม่พบข้อมูลร้านค้า");
+
+            if (shippingTiers.length > 0) shippingTiers[0].min_amount = 0;
+            shippingTiers.sort((a, b) => a.min_amount - b.min_amount);
+
+            const btn = document.getElementById('btn-save-shipping');
+            const msg = document.getElementById('shipping-save-msg');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+
+            try {
+                const { error } = await supabaseClient.from('company_profile').update({
+                    shipping_tiers: shippingTiers
+                }).eq('id', currentCompanyId);
+
+                if (error) throw error;
+                msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 3000);
+            } catch (err) { console.error(err); alert("เกิดข้อผิดพลาด"); }
+            finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึกเรทค่าจัดส่ง'; renderShippingTiers(); }
+        }
+
+        // 🌟 ฟังก์ชันบันทึกข้อมูลติดต่อ
+        window.saveContactSettings = async function () {
+            if (!currentCompanyId) return alert("ไม่พบข้อมูลร้านค้า");
+
+            const btn = document.getElementById('btn-save-contact');
+            const msg = document.getElementById('contact-save-msg');
+            const email = document.getElementById('setting-email').value.trim();
+            const lineId = document.getElementById('setting-line-id').value.trim();
+            const lineUrl = document.getElementById('setting-line-url').value.trim();
+            const lineQr = document.getElementById('setting-line-qr').value.trim();
+
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+
+            try {
+                const { error } = await supabaseClient.from('company_profile').update({
+                    email: email,
+                    line_id: lineId,
+                    line_url: lineUrl,
+                    line_qr_url: lineQr
+                }).eq('id', currentCompanyId);
+
+                if (error) throw error;
+                msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 3000);
+            } catch (err) {
+                console.error(err); alert("เกิดข้อผิดพลาดในการบันทึก");
+            } finally {
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึกข้อมูลติดต่อ';
+            }
+        }
+
+        checkAuth();
+    </script>
+</body>
+
+</html>
