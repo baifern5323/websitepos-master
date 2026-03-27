@@ -327,7 +327,11 @@ function renderProducts() {
     const hotSection = document.getElementById('hot-products-section');
     const hotGrid = document.getElementById('hot-products-grid');
 
-    const filteredHot = products.filter(p => p.is_hot && (p.name.toLowerCase().includes(searchQuery) || p.id.toLowerCase().includes(searchQuery) || (p.barcode && p.barcode.toLowerCase().includes(searchQuery))));
+    // 🌟 แก้ไข: ค้นหาจาก name และ barcode (ลบการค้นหาด้วย ID ออก)
+    const filteredHot = products.filter(p => p.is_hot && (
+        p.name.toLowerCase().includes(searchQuery) ||
+        (p.barcode && p.barcode.toLowerCase().includes(searchQuery))
+    ));
 
     if (filteredHot.length > 0) {
         if (hotSection) hotSection.classList.remove('hidden');
@@ -340,8 +344,10 @@ function renderProducts() {
     const emptyState = document.getElementById('empty-state');
     const paginationContainer = document.getElementById('pagination-controls');
 
+    // 🌟 แก้ไข: ค้นหาจาก name และ barcode (ลบการค้นหาด้วย ID ออก)
     const filteredCat = products.filter(p => {
-        const matchSearch = p.name.toLowerCase().includes(searchQuery) || p.id.toLowerCase().includes(searchQuery) || (p.barcode && p.barcode.toLowerCase().includes(searchQuery));
+        const matchSearch = p.name.toLowerCase().includes(searchQuery) ||
+            (p.barcode && p.barcode.toLowerCase().includes(searchQuery));
         const matchCat = activeCategory === 'All' || p.category === activeCategory;
         return matchSearch && matchCat;
     });
