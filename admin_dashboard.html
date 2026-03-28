@@ -726,7 +726,7 @@
                             });
                         }
 
-                        allBulkUnits.sort((a, b) => b.rate - a.rate);
+                        allBulkUnits.sort((a, b) => a.rate - b.rate);
 
                         let unitsList = [{ label: `${sUnit} (1 ${sUnit})`, price: sPrice }];
                         allBulkUnits.forEach(bu => {
@@ -757,7 +757,8 @@
                         if (remainingStock <= 0) {
                             stockHtml = `<span class="text-red-500">0.00 ${sUnit}</span>`;
                         } else {
-                            allBulkUnits.forEach(bu => {
+                            // 🌟 สำหรับการแสดงสต็อก ต้องเรียงจาก "มากไปน้อย" (เพื่อให้แสดงเป็น ลัง -> กล่อง -> ชิ้น)
+                            [...allBulkUnits].sort((a, b) => b.rate - a.rate).forEach(bu => {
                                 if (remainingStock >= bu.rate) {
                                     const count = Math.floor(remainingStock / bu.rate);
                                     stockHtml += `${count.toFixed(2)} <span class="text-slate-500">${bu.name}</span> `;

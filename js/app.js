@@ -58,14 +58,27 @@ async function fetchProductsFromCloud() {
             const activeData = productData.filter(p => p.status !== 1 && p.show_on_web === true);
             const standardProducts = activeData.map(p => {
                 let units = [];
-                if (p.web_show_s_unit && p.price1 > 0) units.push({ name: p.s_unit ? p.s_unit.trim() : 'ชิ้น', price: p.price1 });
+                // 1. หน่วยย่อยสุด (Smallest Unit)
+                if (p.web_show_s_unit && p.price1 > 0) units.push({ name: p.s_unit ? p.s_unit.trim() : 'ชิ้น', price: p.price1, rate: 1 });
 
+                // 2. หน่วยขายส่ง (Bulk Units)
                 if (p.web_show_l_unit && p.product_units && p.product_units.length > 0) {
                     p.product_units.forEach(u => {
-                        if (u.m_unit && u.price2 > 0 && !units.find(x => x.name === u.m_unit.trim())) units.push({ name: u.m_unit.trim(), price: u.price2 });
-                        if (u.l_unit && u.price1 > 0 && !units.find(x => x.name === u.l_unit.trim())) units.push({ name: u.l_unit.trim(), price: u.price1 });
+                        // หน่วยกลาง (M Unit)
+                        if (u.m_unit && u.price2 > 0 && !units.find(x => x.name === u.m_unit.trim())) {
+                            let mRate = (Number(u.num_s_per_l_unit) / Number(u.num_m_per_l_unit)) || Number(u.num_m_per_l_unit) || 0;
+                            if (mRate > 1) units.push({ name: u.m_unit.trim(), price: u.price2, rate: mRate });
+                        }
+                        // หน่วยใหญ่ (L Unit)
+                        if (u.l_unit && u.price1 > 0 && !units.find(x => x.name === u.l_unit.trim())) {
+                            units.push({ name: u.l_unit.trim(), price: u.price1, rate: Number(u.num_s_per_l_unit) || 0 });
+                        }
                     });
                 }
+
+                // 🌟 สั่งเรียงลำดับจาก "น้อยไปมาก" (ตามจำนวนคูณ)
+                units.sort((a, b) => (a.rate || 0) - (b.rate || 0));
+
                 return { id: p.pn, barcode: p.barcode, name: p.name, price: p.price1, stock: p.stock, image_url: p.image_url, web_detail: p.web_detail, category: p.product_groups ? p.product_groups.name : 'ไม่มีหมวดหมู่', is_hot: p.is_hot, units: units };
             });
             combinedProducts = [...combinedProducts, ...standardProducts];
@@ -504,8 +517,12 @@ window.checkoutViaLine = function () {
 
     if (!currentLineId) { alert('ร้านค้ายังไม่ตั้งค่า LINE สำหรับรับออเดอร์'); return; }
 
-    let txt = `🛒 *คำสั่งซื้อใหม่*\n\n👤 *ลูกค้า*: ${name}\n📞 *เบอร์*: ${phone}\n📍 *ที่อยู่*: ${address || '-'}\n\n📦 *สินค้า*\n`;
-    cart.forEach((i, idx) => { txt += `${idx + 1}. ${i.name}\n   👉 ${i.qty} ${i.unitName} = ฿${(i.price * i.qty).toLocaleString()}\n`; });
+    const shopName = document.getElementById('header-company-name')?.innerText.trim() || 'ร้านค้าของเรา';
+    let txt = `🛒 *คำสั่งซื้อใหม่จากร้าน ${shopName}*\n\n👤 *ลูกค้า*: ${name}\n📞 *เบอร์*: ${phone}\n📍 *ที่อยู่*: ${address || '-'}\n\n📦 *สินค้า*\n`;
+    cart.forEach((i, idx) => { 
+        const barcodeTxt = i.barcode ? `\n   📦 บาร์โค้ด: ${i.barcode}` : '';
+        txt += `${idx + 1}. *${i.name}*${barcodeTxt}\n   👉 ${i.qty} ${i.unitName} = ฿${(i.price * i.qty).toLocaleString()}\n`; 
+    });
 
     const sub = cart.reduce((s, i) => s + (i.price * i.qty), 0);
     const tier = currentShippingTiers.find(t => sub >= t.min_amount);
