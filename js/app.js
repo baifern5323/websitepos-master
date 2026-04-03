@@ -523,7 +523,13 @@ async function initializeLiff() {
             const profileName = document.getElementById('line-profile-name');
             const profileBox = document.getElementById('line-profile-box');
 
-            if (idInput) idInput.value = profile.userId;
+            if (idInput) {
+                idInput.value = profile.userId;
+                idInput.readOnly = true;
+                idInput.classList.add('bg-gray-100');
+                const label = document.getElementById('customer-line-id-label');
+                if (label) label.classList.remove('hidden');
+            }
             if (nameInput && !nameInput.value) nameInput.value = profile.displayName;
             if (profileImg) profileImg.src = profile.pictureUrl;
             if (profileName) profileName.innerText = profile.displayName;
@@ -555,50 +561,38 @@ async function fetchCustomerHistory(userId) {
 window.checkoutViaLine = async function () {
     if (cart.length === 0) return;
 
-    // ตรวจสอบล็อกอิน LINE หากยังไม่มี LINE ID
-    if (!liff.isLoggedIn()) {
-        if (confirm("กรุณาล็อกอิน LINE เพื่อทำรายการต่อครับ")) {
-            liff.login();
-        }
-        return;
-    }
-
+    // ลบบล็อกการล็อกอินออกเพื่อให้ Desktop ใช้งานได้
     const lineId = document.getElementById('customer-line-id')?.value.trim();
     const name = document.getElementById('customer-name')?.value.trim();
     const phone = document.getElementById('customer-phone')?.value.trim();
     const address = document.getElementById('customer-address')?.value.trim();
     const err = document.getElementById('checkout-error');
 
-    if (!lineId || !name || !phone) {
-        if (err) {
-            err.innerText = " กรุณากรอกชื่อ และเบอร์โทรศัพท์ให้ครบถ้วน";
-            err.classList.remove('hidden');
-        }
+    // ตรวจสอบความถูกต้องของข้อมูล
+    if (!lineId) {
+        if (err) { err.innerText = " กรุณาล็อกอิน LINE เพื่อดึงข้อมูลอัตโนมัติ"; err.classList.remove('hidden'); }
+        return;
+    }
+    if (!name || !phone) {
+        if (err) { err.innerText = " กรุณากรอกชื่อและเบอร์โทรศัพท์ให้ครบถ้วน"; err.classList.remove('hidden'); }
         return;
     }
     if (err) err.classList.add('hidden');
 
     if (!currentLineId) { alert('ร้านค้ายังไม่ตั้งค่า LINE สำหรับรับออเดอร์'); return; }
 
-    // 🌟 เก็บข้อมูลลูกค้าลง Supabase
+    // 🌟 พยายามเก็บข้อมูลลูกค้าลง Supabase (ไม่บล็อกการสั่งซื้อหากล้มเหลว)
     try {
-        const { error: upsertError } = await supabaseClient.from('customers').upsert({
+        await supabaseClient.from('customers').upsert({
             line_id: lineId,
             name: name,
             phone: phone,
             address: address || '',
             updated_at: new Date().toISOString()
         }, { onConflict: 'line_id' });
-
-        if (upsertError) {
-            console.error("Supabase Error:", upsertError);
-            alert("ไม่สามารถบันทึกข้อมูลลูกค้าได้: " + upsertError.message);
-            return;
-        }
-    } catch (err) {
-        console.error("Save Customer Error:", err);
-        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-        return;
+    } catch (saveErr) {
+        console.error("Supabase Save Error (Silently passing):", saveErr);
+        // ไม่แจ้งเตือนผู้ใช้ เพื่อไม่ให้ขัดจังหวะการสั่งซื้อ
     }
 
     const shopName = document.getElementById('header-company-name')?.innerText.trim() || 'ร้านค้าของเรา';

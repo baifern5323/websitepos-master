@@ -247,14 +247,17 @@
                         <i class="fa-solid fa-location-dot"></i> ข้อมูลสำหรับจัดส่ง
                     </div>
                     <!-- ส่วนแสดงโปรไฟล์ LINE -->
-                    <div id="line-profile-box" class="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-100 mb-1 hidden">
+                    <div id="line-profile-box"
+                        class="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-100 mb-1 hidden">
                         <img id="line-profile-img" src="" class="w-10 h-10 rounded-full border border-[#7fad39]">
                         <div class="flex flex-col">
                             <span id="line-profile-name" class="text-xs font-bold text-black leading-none">...</span>
                             <span class="text-[10px] text-gray-400">LINE Connected</span>
                         </div>
                     </div>
-                    <input type="hidden" id="customer-line-id">
+                    <div id="customer-line-id-label" class="text-[10px] text-gray-400 mb-1 ml-1 hidden">LINE ID (อ่านอัตโนมัติ)</div>
+                    <input type="text" id="customer-line-id" placeholder="LINE ID *"
+                        class="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-lg outline-none focus:border-[#7fad39] mb-1">
                     <input type="text" id="customer-name" placeholder="ชื่อ - นามสกุล *"
                         class="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-lg outline-none focus:border-[#7fad39]"
                         required>
