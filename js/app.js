@@ -524,19 +524,17 @@ async function initializeLiff() {
             const profileBox = document.getElementById('line-profile-box');
 
             if (idInput) {
-                idInput.value = profile.userId;
+                idInput.value = profile.displayName; 
                 idInput.readOnly = true;
                 idInput.classList.add('bg-gray-100');
-                const label = document.getElementById('customer-line-id-label');
-                if (label) label.classList.remove('hidden');
             }
             if (nameInput && !nameInput.value) nameInput.value = profile.displayName;
             if (profileImg) profileImg.src = profile.pictureUrl;
             if (profileName) profileName.innerText = profile.displayName;
             if (profileBox) profileBox.classList.remove('hidden');
 
-            // 🌟 ดึงข้อมูลเก่าจาก Supabase (ถ้ามี)
-            fetchCustomerHistory(profile.userId);
+            // 🌟 ดึงข้อมูลเก่าจาก Supabase (ถ้ามี) โดยค้นหาจากชื่อ LINE
+            fetchCustomerHistory(profile.displayName);
         } else {
             // ยังไม่ล็อกอิน ไม่บังคับทันที แต่อาจแสดงปุ่มล็อกอิน
             console.log("LINE LIFF: Not logged in");
@@ -546,9 +544,9 @@ async function initializeLiff() {
     }
 }
 
-async function fetchCustomerHistory(userId) {
+async function fetchCustomerHistory(lineName) {
     try {
-        const { data, error } = await supabaseClient.from('customers').select('*').eq('line_id', userId).single();
+        const { data, error } = await supabaseClient.from('customers').select('*').eq('line_id', lineName).single();
         if (data && !error) {
             const phoneInput = document.getElementById('customer-phone');
             const addressInput = document.getElementById('customer-address');
@@ -561,7 +559,7 @@ async function fetchCustomerHistory(userId) {
 window.checkoutViaLine = async function () {
     if (cart.length === 0) return;
 
-    // ลบบล็อกการล็อกอินออกเพื่อให้ Desktop ใช้งานได้
+    // ลบบล็อกการล็อกอินออก เพื่อให้ Mobile/Desktop สั่งได้ทุกกรณี
     const lineId = document.getElementById('customer-line-id')?.value.trim();
     const name = document.getElementById('customer-name')?.value.trim();
     const phone = document.getElementById('customer-phone')?.value.trim();
@@ -569,12 +567,8 @@ window.checkoutViaLine = async function () {
     const err = document.getElementById('checkout-error');
 
     // ตรวจสอบความถูกต้องของข้อมูล
-    if (!lineId) {
-        if (err) { err.innerText = " กรุณาล็อกอิน LINE เพื่อดึงข้อมูลอัตโนมัติ"; err.classList.remove('hidden'); }
-        return;
-    }
-    if (!name || !phone) {
-        if (err) { err.innerText = " กรุณากรอกชื่อและเบอร์โทรศัพท์ให้ครบถ้วน"; err.classList.remove('hidden'); }
+    if (!lineId || !name || !phone) {
+        if (err) { err.innerText = " กรุณากรอก 'ชื่อ LINE', 'ชื่อ-สกุล' และ 'เบอร์โทร' ให้ครบถ้วน"; err.classList.remove('hidden'); }
         return;
     }
     if (err) err.classList.add('hidden');
@@ -596,7 +590,7 @@ window.checkoutViaLine = async function () {
     }
 
     const shopName = document.getElementById('header-company-name')?.innerText.trim() || 'ร้านค้าของเรา';
-    let txt = `🛒 *คำสั่งซื้อใหม่จากร้าน ${shopName}*\n\n🆔 *LINE ID*: ${lineId}\n👤 *ลูกค้า*: ${name}\n📞 *เบอร์*: ${phone}\n📍 *ที่อยู่*: ${address || '-'}\n\n📦 *สินค้า*\n`;
+    let txt = `🛒 *คำสั่งซื้อใหม่จากร้าน ${shopName}*\n\n👤 *ชื่อ LINE*: ${lineId}\n👤 *ลูกค้า*: ${name}\n📞 *เบอร์*: ${phone}\n📍 *ที่อยู่*: ${address || '-'}\n\n📦 *สินค้า*\n`;
     cart.forEach((i, idx) => {
         const barcodeTxt = i.barcode ? `\n   📦 บาร์โค้ด: ${i.barcode}` : '';
         txt += `${idx + 1}. *${i.name}*${barcodeTxt}\n   👉 ${i.qty} ${i.unitName} = ฿${(i.price * i.qty).toLocaleString()}\n`;
