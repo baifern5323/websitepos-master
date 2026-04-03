@@ -7,6 +7,7 @@ let currentShippingTiers = [{ min_amount: 0, fee: 50 }, { min_amount: 500, fee: 
 // ⚠️ ใส่ Supabase URL และ Key 
 const SUPABASE_URL = 'https://xpetiobkllituiewqkos.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_vZKcLK-PW_SVleLuJMmnjw_3ApwNLOf';
+const liffId = '2009669752-FDsRcno0'; // 🌟 LINE LIFF ID
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================================
@@ -149,6 +150,7 @@ async function fetchProductsFromCloud() {
             if (hasLineInfo && lineBox) lineBox.classList.remove('hidden');
         }
 
+        initializeLiff(); // 🌟 เริ่มการทำงานของ LINE LIFF
         init();
     } catch (err) {
         console.error("Fetch Error:", err);
@@ -307,7 +309,6 @@ function renderTabs() {
 }
 
 function createProductCard(product) {
-    const isOutOfStock = product.stock <= 0;
     let selectedIndex = selectedUnits[product.id] || 0;
     const currentUnit = product.units[selectedIndex] || { name: 'ชิ้น', price: product.price || 0 };
 
@@ -318,9 +319,8 @@ function createProductCard(product) {
     return `
     <div class="group flex flex-col items-center relative pb-3 md:pb-4 rounded-xl transition-all overflow-hidden w-full h-full ${product.is_hot ? 'border-2 border-red-400 shadow-md bg-gradient-to-b from-red-50/30 to-white' : 'border border-gray-100 bg-white hover:border-[#7fad39]/30 shadow-sm'}">
         <div class="w-full aspect-[4/3] bg-[#f5f5f5] relative overflow-hidden mb-2 md:mb-4">
-            <img src="${product.image_url}" onerror="this.src='https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image'" class="w-full h-full object-cover transition duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}" />
-            ${!isOutOfStock && product.is_hot ? '<div class="absolute top-2 right-2 md:top-3 md:right-3 bg-red-500 text-white text-[10px] md:text-xs font-black px-2 py-1 rounded-full shadow-md z-10 animate-pulse">HOT</div>' : ''}
-            ${isOutOfStock ? '<div class="absolute top-2 left-2 md:top-3 md:left-3 bg-gray-800 text-white text-[10px] md:text-xs font-bold px-2 py-1 rounded-sm z-10">SOLD OUT</div>' : ''}
+            <img src="${product.image_url}" onerror="this.src='https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image'" class="w-full h-full object-cover transition duration-500 group-hover:scale-105" />
+            ${product.is_hot ? '<div class="absolute top-2 right-2 md:top-3 md:right-3 bg-red-500 text-white text-[10px] md:text-xs font-black px-2 py-1 rounded-full shadow-md z-10 animate-pulse">HOT</div>' : ''}
         </div>
         <div class="text-center w-full px-2 md:px-4 flex flex-col flex-1">
             <h6 class="text-gray-400 text-[10px] md:text-xs mb-1 font-mono">${product.barcode || product.id}</h6>
@@ -328,7 +328,7 @@ function createProductCard(product) {
             <div class="mt-auto mb-2 md:mb-3">${unitSelectHtml}</div>
             <div class="flex justify-between items-center w-full mt-1">
                 <h5 class="text-base md:text-xl font-bold ${product.is_hot ? 'text-red-600' : 'text-black'} text-left">฿${Number(currentUnit.price).toLocaleString()}</h5>
-                <button onclick="addToCart('${product.id}')" ${isOutOfStock ? 'disabled' : ''} class="w-8 h-8 md:w-10 md:h-10 ${product.is_hot ? 'bg-red-500' : 'bg-[#7fad39]'} rounded-full flex items-center justify-center text-white disabled:bg-gray-300 shadow-sm shrink-0">
+                <button onclick="addToCart('${product.id}')" class="w-8 h-8 md:w-10 md:h-10 ${product.is_hot ? 'bg-red-500' : 'bg-[#7fad39]'} rounded-full flex items-center justify-center text-white shadow-sm shrink-0">
                     <i class="fa-solid fa-cart-shopping"></i>
                 </button>
             </div>
@@ -509,19 +509,103 @@ window.openCart = function () { document.getElementById('cart-drawer').classList
 window.closeCart = function () { document.getElementById('cart-overlay').classList.add('opacity-0'); document.getElementById('cart-content').classList.add('translate-x-full'); setTimeout(() => document.getElementById('cart-drawer').classList.add('hidden'), 300); }
 window.clearSearchAndGoHome = function () { document.getElementById('search-input').value = ''; searchQuery = ''; setActiveCategory('All'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-window.checkoutViaLine = function () {
+// ==========================================
+// 7. ระบบ LINE LIFF (ดึงข้อมูลอัตโนมัติ)
+// ==========================================
+async function initializeLiff() {
+    try {
+        await liff.init({ liffId: liffId });
+        if (liff.isLoggedIn()) {
+            const profile = await liff.getProfile();
+            const idInput = document.getElementById('customer-line-id');
+            const nameInput = document.getElementById('customer-name');
+            const profileImg = document.getElementById('line-profile-img');
+            const profileName = document.getElementById('line-profile-name');
+            const profileBox = document.getElementById('line-profile-box');
+
+            if (idInput) idInput.value = profile.userId;
+            if (nameInput && !nameInput.value) nameInput.value = profile.displayName;
+            if (profileImg) profileImg.src = profile.pictureUrl;
+            if (profileName) profileName.innerText = profile.displayName;
+            if (profileBox) profileBox.classList.remove('hidden');
+
+            // 🌟 ดึงข้อมูลเก่าจาก Supabase (ถ้ามี)
+            fetchCustomerHistory(profile.userId);
+        } else {
+            // ยังไม่ล็อกอิน ไม่บังคับทันที แต่อาจแสดงปุ่มล็อกอิน
+            console.log("LINE LIFF: Not logged in");
+        }
+    } catch (err) {
+        console.error("LIFF Init Error:", err);
+    }
+}
+
+async function fetchCustomerHistory(userId) {
+    try {
+        const { data, error } = await supabaseClient.from('customers').select('*').eq('line_id', userId).single();
+        if (data && !error) {
+            const phoneInput = document.getElementById('customer-phone');
+            const addressInput = document.getElementById('customer-address');
+            if (phoneInput && !phoneInput.value) phoneInput.value = data.phone;
+            if (addressInput && !addressInput.value) addressInput.value = data.address;
+        }
+    } catch (err) { console.error("History Error:", err); }
+}
+
+window.checkoutViaLine = async function () {
     if (cart.length === 0) return;
-    const name = document.getElementById('customer-name')?.value.trim(), phone = document.getElementById('customer-phone')?.value.trim(), address = document.getElementById('customer-address')?.value.trim(), err = document.getElementById('checkout-error');
-    if (!name || !phone) { if (err) err.classList.remove('hidden'); return; }
+
+    // ตรวจสอบล็อกอิน LINE หากยังไม่มี LINE ID
+    if (!liff.isLoggedIn()) {
+        if (confirm("กรุณาล็อกอิน LINE เพื่อทำรายการต่อครับ")) {
+            liff.login();
+        }
+        return;
+    }
+
+    const lineId = document.getElementById('customer-line-id')?.value.trim();
+    const name = document.getElementById('customer-name')?.value.trim();
+    const phone = document.getElementById('customer-phone')?.value.trim();
+    const address = document.getElementById('customer-address')?.value.trim();
+    const err = document.getElementById('checkout-error');
+
+    if (!lineId || !name || !phone) {
+        if (err) {
+            err.innerText = " กรุณากรอกชื่อ และเบอร์โทรศัพท์ให้ครบถ้วน";
+            err.classList.remove('hidden');
+        }
+        return;
+    }
     if (err) err.classList.add('hidden');
 
     if (!currentLineId) { alert('ร้านค้ายังไม่ตั้งค่า LINE สำหรับรับออเดอร์'); return; }
 
+    // 🌟 เก็บข้อมูลลูกค้าลง Supabase
+    try {
+        const { error: upsertError } = await supabaseClient.from('customers').upsert({
+            line_id: lineId,
+            name: name,
+            phone: phone,
+            address: address || '',
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'line_id' });
+
+        if (upsertError) {
+            console.error("Supabase Error:", upsertError);
+            alert("ไม่สามารถบันทึกข้อมูลลูกค้าได้: " + upsertError.message);
+            return;
+        }
+    } catch (err) {
+        console.error("Save Customer Error:", err);
+        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        return;
+    }
+
     const shopName = document.getElementById('header-company-name')?.innerText.trim() || 'ร้านค้าของเรา';
-    let txt = `🛒 *คำสั่งซื้อใหม่จากร้าน ${shopName}*\n\n👤 *ลูกค้า*: ${name}\n📞 *เบอร์*: ${phone}\n📍 *ที่อยู่*: ${address || '-'}\n\n📦 *สินค้า*\n`;
-    cart.forEach((i, idx) => { 
+    let txt = `🛒 *คำสั่งซื้อใหม่จากร้าน ${shopName}*\n\n🆔 *LINE ID*: ${lineId}\n👤 *ลูกค้า*: ${name}\n📞 *เบอร์*: ${phone}\n📍 *ที่อยู่*: ${address || '-'}\n\n📦 *สินค้า*\n`;
+    cart.forEach((i, idx) => {
         const barcodeTxt = i.barcode ? `\n   📦 บาร์โค้ด: ${i.barcode}` : '';
-        txt += `${idx + 1}. *${i.name}*${barcodeTxt}\n   👉 ${i.qty} ${i.unitName} = ฿${(i.price * i.qty).toLocaleString()}\n`; 
+        txt += `${idx + 1}. *${i.name}*${barcodeTxt}\n   👉 ${i.qty} ${i.unitName} = ฿${(i.price * i.qty).toLocaleString()}\n`;
     });
 
     const sub = cart.reduce((s, i) => s + (i.price * i.qty), 0);

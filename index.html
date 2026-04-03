@@ -13,6 +13,8 @@
 
     <!-- นำเข้าไฟล์ CSS ของเราเอง -->
     <link rel="stylesheet" href="css/style.css">
+    <!-- นำเข้า LINE LIFF SDK (สำหรับล็อกอินอัตโนมัติ) -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 
 <body class="bg-white text-gray-800">
@@ -46,12 +48,7 @@
                                 <div class="text-xs md:text-sm text-gray-500 leading-none">บริการ 24 ชม.</div>
                             </div>
                         </div>
-                        <div class="md:hidden flex items-center shrink-0 ml-1">
-                            <a href="admin.html"
-                                class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[#7fad39] bg-white rounded-full border border-gray-200 shadow-sm transition hover:bg-gray-50">
-                                <i class="fa-solid fa-user text-xs"></i>
-                            </a>
-                        </div>
+
                     </div>
                 </div>
 
@@ -96,7 +93,6 @@
                 class="flex md:hidden justify-between items-center w-full pt-3 mt-3 border-t border-gray-100 text-[11px] sm:text-xs font-bold tracking-widest text-gray-500 uppercase">
                 <a href="#" onclick="clearSearchAndGoHome(); return false;" class="text-[#7fad39]">HOME</a>
                 <a href="#shop-section" onclick="setActiveCategory('All')" class="hover:text-[#7fad39]">SHOP</a>
-                <a href="#promotion-slider-section" class="hover:text-[#7fad39]">PROMO</a>
                 <a href="#footer-section" class="hover:text-[#7fad39]">CONTACT</a>
             </nav>
         </div>
@@ -110,7 +106,6 @@
                     class="text-[#7fad39] hover:text-[#6c9331]">HOME</a>
                 <a href="#shop-section" onclick="setActiveCategory('All')"
                     class="text-gray-600 hover:text-[#7fad39]">SHOP</a>
-                <a href="#promotion-slider-section" class="text-gray-600 hover:text-[#7fad39]">PROMOTION</a>
                 <a href="#footer-section" class="text-gray-600 hover:text-[#7fad39]">CONTACT</a>
             </nav>
         </div>
@@ -251,6 +246,15 @@
                     <div class="flex items-center gap-2 text-[#7fad39] font-bold text-sm mb-1">
                         <i class="fa-solid fa-location-dot"></i> ข้อมูลสำหรับจัดส่ง
                     </div>
+                    <!-- ส่วนแสดงโปรไฟล์ LINE -->
+                    <div id="line-profile-box" class="flex items-center gap-3 bg-white p-2 rounded-lg border border-gray-100 mb-1 hidden">
+                        <img id="line-profile-img" src="" class="w-10 h-10 rounded-full border border-[#7fad39]">
+                        <div class="flex flex-col">
+                            <span id="line-profile-name" class="text-xs font-bold text-black leading-none">...</span>
+                            <span class="text-[10px] text-gray-400">LINE Connected</span>
+                        </div>
+                    </div>
+                    <input type="hidden" id="customer-line-id">
                     <input type="text" id="customer-name" placeholder="ชื่อ - นามสกุล *"
                         class="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-lg outline-none focus:border-[#7fad39]"
                         required>
