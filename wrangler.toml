@@ -1,0 +1,8 @@
+name = "websitepos-master"
+compatibility_date = "2024-04-05"
+pages_build_output_dir = "."
+
+[vars]
+# คุณต้องไปตั้งค่าตัวแปรเหล่านี้ในหน้า Pages Dashboard (Settings > Functions) ด้วยครับ
+# SUPABASE_URL = "..."
+# SUPABASE_ANON_KEY = "..."

@@ -4,7 +4,9 @@
   "description": "POS Web Application with Cloudflare Pages Functions",
   "main": "index.html",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "wrangler pages dev .",
+    "deploy": "wrangler pages deploy ."
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0"
