@@ -536,8 +536,9 @@ async function initializeLiff() {
             // 🌟 ดึงข้อมูลเก่าจาก Supabase (ถ้ามี) โดยค้นหาจากชื่อ LINE
             fetchCustomerHistory(profile.displayName);
         } else {
-            // ยังไม่ล็อกอิน ไม่บังคับทันที แต่อาจแสดงปุ่มล็อกอิน
-            console.log("LINE LIFF: Not logged in");
+            // ปรับปรุง: ไม่บังคับ Login ทันทีเพื่อให้ลูกค้าเห็นหน้า Index ก่อนตามที่คุณต้องการ
+            // ระบบจะไปขอ Login อีกครั้งตอนที่ลูกค้ากดปุ่ม "ยืนยันสั่งซื้อ" ครับ
+            console.log("LINE LIFF: Not logged in. User can browse index.");
         }
     } catch (err) {
         console.error("LIFF Init Error:", err);
@@ -559,14 +560,21 @@ async function fetchCustomerHistory(lineName) {
 window.checkoutViaLine = async function () {
     if (cart.length === 0) return;
 
-    // ลบบล็อกการล็อกอินออก เพื่อให้ Mobile/Desktop สั่งได้ทุกกรณี
+    // ตรวจสอบล็อกอินอีกรอบเพื่อความมั่นใจ
+    if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+    }
+
+    const profile = await liff.getProfile();
+    const userId = profile.userId;
+
     const lineId = document.getElementById('customer-line-id')?.value.trim();
     const name = document.getElementById('customer-name')?.value.trim();
     const phone = document.getElementById('customer-phone')?.value.trim();
     const address = document.getElementById('customer-address')?.value.trim();
     const err = document.getElementById('checkout-error');
 
-    // ตรวจสอบความถูกต้องของข้อมูล
     if (!lineId || !name || !phone) {
         if (err) { err.innerText = " กรุณากรอก 'ชื่อ LINE', 'ชื่อ-สกุล' และ 'เบอร์โทร' ให้ครบถ้วน"; err.classList.remove('hidden'); }
         return;
@@ -575,33 +583,69 @@ window.checkoutViaLine = async function () {
 
     if (!currentLineId) { alert('ร้านค้ายังไม่ตั้งค่า LINE สำหรับรับออเดอร์'); return; }
 
-    // 🌟 พยายามเก็บข้อมูลลูกค้าลง Supabase (ไม่บล็อกการสั่งซื้อหากล้มเหลว)
-    try {
-        await supabaseClient.from('customers').upsert({
-            line_id: lineId,
-            name: name,
-            phone: phone,
-            address: address || '',
-            updated_at: new Date().toISOString()
-        }, { onConflict: 'line_id' });
-    } catch (saveErr) {
-        console.error("Supabase Save Error (Silently passing):", saveErr);
-        // ไม่แจ้งเตือนผู้ใช้ เพื่อไม่ให้ขัดจังหวะการสั่งซื้อ
-    }
-
-    const shopName = document.getElementById('header-company-name')?.innerText.trim() || 'ร้านค้าของเรา';
-    let txt = `🛒 *คำสั่งซื้อใหม่จากร้าน ${shopName}*\n\n👤 *ชื่อ LINE*: ${lineId}\n👤 *ลูกค้า*: ${name}\n📞 *เบอร์*: ${phone}\n📍 *ที่อยู่*: ${address || '-'}\n\n📦 *สินค้า*\n`;
-    cart.forEach((i, idx) => {
-        const barcodeTxt = i.barcode ? `\n   📦 บาร์โค้ด: ${i.barcode}` : '';
-        txt += `${idx + 1}. *${i.name}*${barcodeTxt}\n   👉 ${i.qty} ${i.unitName} = ฿${(i.price * i.qty).toLocaleString()}\n`;
-    });
-
     const sub = cart.reduce((s, i) => s + (i.price * i.qty), 0);
     const tier = currentShippingTiers.find(t => sub >= t.min_amount);
     const fee = tier ? tier.fee : currentShippingTiers[currentShippingTiers.length - 1].fee;
+    const total = sub + fee;
 
-    txt += `\n🧾 สินค้า: ฿${sub.toLocaleString()}\n🚚 ค่าส่ง: ${fee === 0 ? 'ส่งฟรี' : '฿' + fee.toLocaleString()}\n💰 *รวมสุทธิ: ฿${(sub + fee).toLocaleString()}*\n\nรบกวนแอดมินสรุปยอดครับ 🙏`;
-    window.open(`https://line.me/R/oaMessage/${currentLineId}/?${encodeURIComponent(txt)}`, '_blank');
+    // เตรียมข้อมูลสินค้าเพื่อส่งไปที่ API
+    const itemsData = cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        qty: item.qty,
+        unit: item.unitName,
+        total: item.price * item.qty
+    }));
+
+    // แสดงสถานะกำลังส่งข้อมูล (Optional: เปลี่ยนข้อความปุ่ม)
+    const btn = document.querySelector('button[onclick="checkoutViaLine()"]');
+    const originalBtnHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังบันทึกออเดอร์...';
+
+    try {
+        // 1. Fetch ไปที่ Cloudflare Pages Function API
+        const response = await fetch('/api/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                lineId: lineId,
+                customerName: name,
+                customerPhone: phone,
+                customerAddress: address || '',
+                items: itemsData,
+                subtotal: sub,
+                shippingFee: fee,
+                totalAmount: total
+            })
+        });
+
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.error || 'Server error');
+        }
+
+        // 2. หากสำเร็จ (Response 200 OK) ให้ทำการเตรียมข้อความ LINE
+        const shopName = document.getElementById('header-company-name')?.innerText.trim() || 'ร้านค้าของเรา';
+        let txt = `🛒 *คำสั่งซื้อใหม่จากร้าน ${shopName}*\n\n👤 *ชื่อ LINE*: ${lineId}\n👤 *ลูกค้า*: ${name}\n📞 *เบอร์*: ${phone}\n📍 *ที่อยู่*: ${address || '-'}\n\n📦 *สินค้า*\n`;
+        cart.forEach((i, idx) => {
+            const barcodeTxt = i.barcode ? `\n   📦 บาร์โค้ด: ${i.barcode}` : '';
+            txt += `${idx + 1}. *${i.name}*${barcodeTxt}\n   👉 ${i.qty} ${i.unitName} = ฿${(i.price * i.qty).toLocaleString()}\n`;
+        });
+
+        txt += `\n🧾 สินค้า: ฿${sub.toLocaleString()}\n🚚 ค่าส่ง: ${fee === 0 ? 'ส่งฟรี' : '฿' + fee.toLocaleString()}\n💰 *รวมสุทธิ: ฿${total.toLocaleString()}*\n\nรบกวนแอดมินสรุปยอดครับ 🙏`;
+
+        // 3. Redirect พาลูกค้าไปที่ LINE OA แชท
+        window.location.href = `https://line.me/R/oaMessage/${currentLineId}/?${encodeURIComponent(txt)}`;
+
+    } catch (apiErr) {
+        console.error("API Checkout Error:", apiErr);
+        alert('เกิดข้อผิดพลาดในการบันทึกออเดอร์: ' + apiErr.message);
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+    }
 }
 
 window.addEventListener('scroll', () => {
