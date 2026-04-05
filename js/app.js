@@ -606,7 +606,7 @@ window.checkoutViaLine = async function () {
 
     try {
         // 1. Fetch ไปที่ Cloudflare Pages Function API
-        const response = await fetch('/api/checkout', {
+        const response = await fetch('/api/submit-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
